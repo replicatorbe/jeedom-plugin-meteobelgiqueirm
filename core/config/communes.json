@@ -1,0 +1,1780 @@
+{
+    "11001": {
+        "fr": "Aartselaar"
+    },
+    "11002": {
+        "fr": "Anvers",
+        "nl": "Antwerpen"
+    },
+    "11004": {
+        "fr": "Boechout"
+    },
+    "11005": {
+        "fr": "Boom"
+    },
+    "11008": {
+        "fr": "Brasschaat"
+    },
+    "11009": {
+        "fr": "Brecht"
+    },
+    "11013": {
+        "fr": "Edegem"
+    },
+    "11016": {
+        "fr": "Essen"
+    },
+    "11018": {
+        "fr": "Hemiksem"
+    },
+    "11021": {
+        "fr": "Hove"
+    },
+    "11022": {
+        "fr": "Kalmthout"
+    },
+    "11023": {
+        "fr": "Kapellen"
+    },
+    "11024": {
+        "fr": "Kontich"
+    },
+    "11025": {
+        "fr": "Lint"
+    },
+    "11029": {
+        "fr": "Mortsel"
+    },
+    "11030": {
+        "fr": "Niel"
+    },
+    "11035": {
+        "fr": "Ranst"
+    },
+    "11037": {
+        "fr": "Rumst"
+    },
+    "11038": {
+        "fr": "Schelle"
+    },
+    "11039": {
+        "fr": "Schilde"
+    },
+    "11040": {
+        "fr": "Schoten"
+    },
+    "11044": {
+        "fr": "Stabroek"
+    },
+    "11050": {
+        "fr": "Wijnegem"
+    },
+    "11052": {
+        "fr": "Wommelgem"
+    },
+    "11053": {
+        "fr": "Wuustwezel"
+    },
+    "11054": {
+        "fr": "Zandhoven"
+    },
+    "11055": {
+        "fr": "Zoersel"
+    },
+    "11057": {
+        "fr": "Malle"
+    },
+    "12002": {
+        "fr": "Berlaar"
+    },
+    "12005": {
+        "fr": "Bonheiden"
+    },
+    "12007": {
+        "fr": "Bornem"
+    },
+    "12009": {
+        "fr": "Duffel"
+    },
+    "12014": {
+        "fr": "Heist-op-den-Berg"
+    },
+    "12021": {
+        "fr": "Lier"
+    },
+    "12025": {
+        "fr": "Malines",
+        "nl": "Mechelen"
+    },
+    "12026": {
+        "fr": "Nijlen"
+    },
+    "12029": {
+        "fr": "Putte"
+    },
+    "12035": {
+        "fr": "Sint-Katelijne-Waver"
+    },
+    "12040": {
+        "fr": "Willebroek"
+    },
+    "12041": {
+        "fr": "Puurs-Saint-Amands",
+        "nl": "Puurs-Sint-Amands"
+    },
+    "13001": {
+        "fr": "Arendonk"
+    },
+    "13002": {
+        "fr": "Baerle-Duc",
+        "nl": "Baarle-Hertog"
+    },
+    "13003": {
+        "fr": "Balen"
+    },
+    "13004": {
+        "fr": "Beerse"
+    },
+    "13006": {
+        "fr": "Dessel"
+    },
+    "13008": {
+        "fr": "Geel"
+    },
+    "13010": {
+        "fr": "Grobbendonk"
+    },
+    "13011": {
+        "fr": "Herentals"
+    },
+    "13012": {
+        "fr": "Herenthout"
+    },
+    "13013": {
+        "fr": "Herselt"
+    },
+    "13014": {
+        "fr": "Hoogstraten"
+    },
+    "13016": {
+        "fr": "Hulshout"
+    },
+    "13017": {
+        "fr": "Kasterlee"
+    },
+    "13019": {
+        "fr": "Lille"
+    },
+    "13021": {
+        "fr": "Meerhout"
+    },
+    "13023": {
+        "fr": "Merksplas"
+    },
+    "13025": {
+        "fr": "Mol"
+    },
+    "13029": {
+        "fr": "Olen"
+    },
+    "13031": {
+        "fr": "Oud-Turnhout"
+    },
+    "13035": {
+        "fr": "Ravels"
+    },
+    "13036": {
+        "fr": "Retie"
+    },
+    "13037": {
+        "fr": "Rijkevorsel"
+    },
+    "13040": {
+        "fr": "Turnhout"
+    },
+    "13044": {
+        "fr": "Vorselaar"
+    },
+    "13046": {
+        "fr": "Vosselaar"
+    },
+    "13049": {
+        "fr": "Westerlo"
+    },
+    "13053": {
+        "fr": "Laakdal"
+    },
+    "21001": {
+        "fr": "Anderlecht"
+    },
+    "21002": {
+        "fr": "Auderghem",
+        "nl": "Oudergem"
+    },
+    "21003": {
+        "fr": "Berchem-Sainte-Agathe",
+        "nl": "Sint-Agatha-Berchem"
+    },
+    "21004": {
+        "fr": "Bruxelles",
+        "nl": "Brussel"
+    },
+    "21005": {
+        "fr": "Etterbeek"
+    },
+    "21006": {
+        "fr": "Evere"
+    },
+    "21007": {
+        "fr": "Forest",
+        "nl": "Vorst"
+    },
+    "21008": {
+        "fr": "Ganshoren"
+    },
+    "21009": {
+        "fr": "Ixelles",
+        "nl": "Elsene"
+    },
+    "21010": {
+        "fr": "Jette"
+    },
+    "21011": {
+        "fr": "Koekelberg"
+    },
+    "21012": {
+        "fr": "Molenbeek-Saint-Jean",
+        "nl": "Sint-Jans-Molenbeek"
+    },
+    "21013": {
+        "fr": "Saint-Gilles",
+        "nl": "Sint-Gillis"
+    },
+    "21014": {
+        "fr": "Saint-Josse-ten-Noode",
+        "nl": "Sint-Joost-ten-Node"
+    },
+    "21015": {
+        "fr": "Schaerbeek",
+        "nl": "Schaarbeek"
+    },
+    "21016": {
+        "fr": "Uccle",
+        "nl": "Ukkel"
+    },
+    "21017": {
+        "fr": "Watermael-Boitsfort",
+        "nl": "Watermaal-Bosvoorde"
+    },
+    "21018": {
+        "fr": "Woluwe-Saint-Lambert",
+        "nl": "Sint-Lambrechts-Woluwe"
+    },
+    "21019": {
+        "fr": "Woluwe-Saint-Pierre",
+        "nl": "Sint-Pieters-Woluwe"
+    },
+    "23002": {
+        "fr": "Asse"
+    },
+    "23003": {
+        "fr": "Beersel"
+    },
+    "23009": {
+        "fr": "Biévène",
+        "nl": "Bever"
+    },
+    "23016": {
+        "fr": "Dilbeek"
+    },
+    "23025": {
+        "fr": "Grimbergen"
+    },
+    "23027": {
+        "fr": "Hal",
+        "nl": "Halle"
+    },
+    "23033": {
+        "fr": "Hoeilaart"
+    },
+    "23038": {
+        "fr": "Kampenhout"
+    },
+    "23039": {
+        "fr": "Kapelle-op-den-Bos"
+    },
+    "23044": {
+        "fr": "Liedekerke"
+    },
+    "23045": {
+        "fr": "Londerzeel"
+    },
+    "23047": {
+        "fr": "Machelen"
+    },
+    "23050": {
+        "fr": "Meise"
+    },
+    "23052": {
+        "fr": "Merchtem"
+    },
+    "23060": {
+        "fr": "Opwijk"
+    },
+    "23062": {
+        "fr": "Overijse"
+    },
+    "23064": {
+        "fr": "Pepingen"
+    },
+    "23077": {
+        "fr": "Leeuw-Saint-Pierre",
+        "nl": "Sint-Pieters-Leeuw"
+    },
+    "23081": {
+        "fr": "Steenokkerzeel"
+    },
+    "23086": {
+        "fr": "Ternat"
+    },
+    "23088": {
+        "fr": "Vilvorde",
+        "nl": "Vilvoorde"
+    },
+    "23094": {
+        "fr": "Zaventem"
+    },
+    "23096": {
+        "fr": "Zemst"
+    },
+    "23097": {
+        "fr": "Roosdaal"
+    },
+    "23098": {
+        "fr": "Drogenbos"
+    },
+    "23099": {
+        "fr": "Kraainem"
+    },
+    "23100": {
+        "fr": "Linkebeek"
+    },
+    "23101": {
+        "fr": "Rhode-Saint-Genèse",
+        "nl": "Sint-Genesius-Rode"
+    },
+    "23102": {
+        "fr": "Wemmel"
+    },
+    "23103": {
+        "fr": "Wezembeek-Oppem"
+    },
+    "23104": {
+        "fr": "Lennik"
+    },
+    "23105": {
+        "fr": "Affligem"
+    },
+    "23106": {
+        "fr": "Pajottegem"
+    },
+    "24001": {
+        "fr": "Aarschot"
+    },
+    "24007": {
+        "fr": "Begijnendijk"
+    },
+    "24008": {
+        "fr": "Bekkevoort"
+    },
+    "24009": {
+        "fr": "Bertem"
+    },
+    "24011": {
+        "fr": "Bierbeek"
+    },
+    "24014": {
+        "fr": "Boortmeerbeek"
+    },
+    "24016": {
+        "fr": "Boutersem"
+    },
+    "24020": {
+        "fr": "Diest"
+    },
+    "24028": {
+        "fr": "Geetbets"
+    },
+    "24033": {
+        "fr": "Haacht"
+    },
+    "24038": {
+        "fr": "Herent"
+    },
+    "24041": {
+        "fr": "Hoegaarden"
+    },
+    "24043": {
+        "fr": "Holsbeek"
+    },
+    "24045": {
+        "fr": "Huldenberg"
+    },
+    "24048": {
+        "fr": "Keerbergen"
+    },
+    "24054": {
+        "fr": "Kortenaken"
+    },
+    "24055": {
+        "fr": "Kortenberg"
+    },
+    "24059": {
+        "fr": "Landen"
+    },
+    "24062": {
+        "fr": "Louvain",
+        "nl": "Leuven"
+    },
+    "24066": {
+        "fr": "Lubbeek"
+    },
+    "24086": {
+        "fr": "Oud-Heverlee"
+    },
+    "24094": {
+        "fr": "Rotselaar"
+    },
+    "24104": {
+        "fr": "Tervuren"
+    },
+    "24107": {
+        "fr": "Tirlemont",
+        "nl": "Tienen"
+    },
+    "24109": {
+        "fr": "Tremelo"
+    },
+    "24130": {
+        "fr": "Zoutleeuw"
+    },
+    "24133": {
+        "fr": "Linter"
+    },
+    "24134": {
+        "fr": "Scherpenheuvel-Zichem"
+    },
+    "24135": {
+        "fr": "Tielt-Winge"
+    },
+    "24137": {
+        "fr": "Glabbeek"
+    },
+    "25005": {
+        "fr": "Beauvechain",
+        "nl": "Bevekom"
+    },
+    "25014": {
+        "fr": "Braine-l'Alleud",
+        "nl": "Eigenbrakel"
+    },
+    "25015": {
+        "fr": "Braine-le-Château"
+    },
+    "25018": {
+        "fr": "Chaumont-Gistoux"
+    },
+    "25023": {
+        "fr": "Court-Saint-Étienne"
+    },
+    "25031": {
+        "fr": "Genappe"
+    },
+    "25037": {
+        "fr": "Grez-Doiceau"
+    },
+    "25043": {
+        "fr": "Incourt"
+    },
+    "25044": {
+        "fr": "Ittre",
+        "nl": "Itter"
+    },
+    "25048": {
+        "fr": "Jodoigne",
+        "nl": "Geldenaken"
+    },
+    "25050": {
+        "fr": "La Hulpe",
+        "nl": "Terhulpen"
+    },
+    "25068": {
+        "fr": "Mont-Saint-Guibert"
+    },
+    "25072": {
+        "fr": "Nivelles",
+        "nl": "Nijvel"
+    },
+    "25084": {
+        "fr": "Perwez"
+    },
+    "25091": {
+        "fr": "Rixensart"
+    },
+    "25105": {
+        "fr": "Tubize",
+        "nl": "Tubeke"
+    },
+    "25107": {
+        "fr": "Villers-la-Ville"
+    },
+    "25110": {
+        "fr": "Waterloo"
+    },
+    "25112": {
+        "fr": "Wavre",
+        "nl": "Waver"
+    },
+    "25117": {
+        "fr": "Chastre"
+    },
+    "25118": {
+        "fr": "Hélécine"
+    },
+    "25119": {
+        "fr": "Lasne"
+    },
+    "25120": {
+        "fr": "Orp-Jauche"
+    },
+    "25121": {
+        "fr": "Ottignies-Louvain-La-Neuve"
+    },
+    "25122": {
+        "fr": "Ramillies"
+    },
+    "25123": {
+        "fr": "Rebecq"
+    },
+    "25124": {
+        "fr": "Walhain"
+    },
+    "31003": {
+        "fr": "Beernem"
+    },
+    "31004": {
+        "fr": "Blankenberge"
+    },
+    "31005": {
+        "fr": "Bruges",
+        "nl": "Brugge"
+    },
+    "31006": {
+        "fr": "Damme"
+    },
+    "31012": {
+        "fr": "Jabbeke"
+    },
+    "31022": {
+        "fr": "Oostkamp"
+    },
+    "31033": {
+        "fr": "Torhout"
+    },
+    "31040": {
+        "fr": "Zedelgem"
+    },
+    "31042": {
+        "fr": "Zuienkerke"
+    },
+    "31043": {
+        "fr": "Knokke-Heist"
+    },
+    "32003": {
+        "fr": "Dixmude",
+        "nl": "Diksmuide"
+    },
+    "32006": {
+        "fr": "Houthulst"
+    },
+    "32010": {
+        "fr": "Koekelare"
+    },
+    "32011": {
+        "fr": "Kortemark"
+    },
+    "32030": {
+        "fr": "Lo-Reninge"
+    },
+    "33011": {
+        "fr": "Ypres",
+        "nl": "Ieper"
+    },
+    "33016": {
+        "fr": "Mesen"
+    },
+    "33021": {
+        "fr": "Poperinge"
+    },
+    "33029": {
+        "fr": "Wervicq",
+        "nl": "Wervik"
+    },
+    "33037": {
+        "fr": "Zonnebeke"
+    },
+    "33039": {
+        "fr": "Heuvelland"
+    },
+    "33040": {
+        "fr": "Langemark-Poelkapelle"
+    },
+    "33041": {
+        "fr": "Vleteren"
+    },
+    "34002": {
+        "fr": "Anzegem"
+    },
+    "34003": {
+        "fr": "Avelghem",
+        "nl": "Avelgem"
+    },
+    "34009": {
+        "fr": "Deerlijk"
+    },
+    "34013": {
+        "fr": "Harelbeke"
+    },
+    "34022": {
+        "fr": "Courtrai",
+        "nl": "Kortrijk"
+    },
+    "34023": {
+        "fr": "Kuurne"
+    },
+    "34025": {
+        "fr": "Lendelede"
+    },
+    "34027": {
+        "fr": "Menen"
+    },
+    "34040": {
+        "fr": "Waregem"
+    },
+    "34041": {
+        "fr": "Wevelgem"
+    },
+    "34042": {
+        "fr": "Zwevegem"
+    },
+    "34043": {
+        "fr": "Spiere-Helkijn"
+    },
+    "35002": {
+        "fr": "Bredene"
+    },
+    "35005": {
+        "fr": "Gistel"
+    },
+    "35006": {
+        "fr": "Ichtegem"
+    },
+    "35011": {
+        "fr": "Middelkerke"
+    },
+    "35013": {
+        "fr": "Ostende",
+        "nl": "Oostende"
+    },
+    "35014": {
+        "fr": "Oudenburg"
+    },
+    "35029": {
+        "fr": "De Haan"
+    },
+    "36006": {
+        "fr": "Hooglede"
+    },
+    "36007": {
+        "fr": "Ingelmunster"
+    },
+    "36008": {
+        "fr": "Izegem"
+    },
+    "36010": {
+        "fr": "Ledegem"
+    },
+    "36011": {
+        "fr": "Lichtervelde"
+    },
+    "36012": {
+        "fr": "Moorslede"
+    },
+    "36015": {
+        "fr": "Roulers",
+        "nl": "Roeselare"
+    },
+    "36019": {
+        "fr": "Staden"
+    },
+    "37002": {
+        "fr": "Dentergem"
+    },
+    "37010": {
+        "fr": "Oostrozebeke"
+    },
+    "37011": {
+        "fr": "Pittem"
+    },
+    "37017": {
+        "fr": "Wielsbeke"
+    },
+    "37020": {
+        "fr": "Ardooie"
+    },
+    "37021": {
+        "fr": "Wingene"
+    },
+    "37022": {
+        "fr": "Tielt"
+    },
+    "38002": {
+        "fr": "Alveringem"
+    },
+    "38008": {
+        "fr": "La Panne",
+        "nl": "De Panne"
+    },
+    "38014": {
+        "fr": "Coxyde",
+        "nl": "Koksijde"
+    },
+    "38016": {
+        "fr": "Nieuport",
+        "nl": "Nieuwpoort"
+    },
+    "38025": {
+        "fr": "Furnes",
+        "nl": "Veurne"
+    },
+    "41002": {
+        "fr": "Alost",
+        "nl": "Aalst"
+    },
+    "41011": {
+        "fr": "Denderleeuw"
+    },
+    "41018": {
+        "fr": "Grammont",
+        "nl": "Geraardsbergen"
+    },
+    "41024": {
+        "fr": "Haaltert"
+    },
+    "41027": {
+        "fr": "Herzele"
+    },
+    "41034": {
+        "fr": "Lede"
+    },
+    "41048": {
+        "fr": "Ninove"
+    },
+    "41063": {
+        "fr": "Sint-Lievens-Houtem"
+    },
+    "41081": {
+        "fr": "Zottegem"
+    },
+    "41082": {
+        "fr": "Erpe-Mere"
+    },
+    "42003": {
+        "fr": "Berlare"
+    },
+    "42004": {
+        "fr": "Buggenhout"
+    },
+    "42006": {
+        "fr": "Termonde",
+        "nl": "Dendermonde"
+    },
+    "42008": {
+        "fr": "Hamme"
+    },
+    "42010": {
+        "fr": "Laarne"
+    },
+    "42011": {
+        "fr": "Lebbeke"
+    },
+    "42023": {
+        "fr": "Waasmunster"
+    },
+    "42025": {
+        "fr": "Wetteren"
+    },
+    "42026": {
+        "fr": "Wichelen"
+    },
+    "42028": {
+        "fr": "Zele"
+    },
+    "43002": {
+        "fr": "Assenede"
+    },
+    "43005": {
+        "fr": "Eeklo"
+    },
+    "43007": {
+        "fr": "Kaprijke"
+    },
+    "43010": {
+        "fr": "Maldegem"
+    },
+    "43014": {
+        "fr": "Sint-Laureins"
+    },
+    "43018": {
+        "fr": "Zelzate"
+    },
+    "44013": {
+        "fr": "Destelbergen"
+    },
+    "44019": {
+        "fr": "Evergem"
+    },
+    "44020": {
+        "fr": "Gavere"
+    },
+    "44021": {
+        "fr": "Gand",
+        "nl": "Gent"
+    },
+    "44052": {
+        "fr": "Oosterzele"
+    },
+    "44064": {
+        "fr": "Sint-Martens-Latem"
+    },
+    "44081": {
+        "fr": "Zulte"
+    },
+    "44083": {
+        "fr": "Deinze"
+    },
+    "44084": {
+        "fr": "Aalter"
+    },
+    "44085": {
+        "fr": "Lievegem"
+    },
+    "44086": {
+        "fr": "Nazareth-De Pinte"
+    },
+    "44087": {
+        "fr": "Lochristi"
+    },
+    "44088": {
+        "fr": "Merelbeke-Melle"
+    },
+    "45035": {
+        "fr": "Audenarde",
+        "nl": "Oudenaarde"
+    },
+    "45041": {
+        "fr": "Renaix",
+        "nl": "Ronse"
+    },
+    "45059": {
+        "fr": "Brakel"
+    },
+    "45060": {
+        "fr": "Kluisbergen"
+    },
+    "45061": {
+        "fr": "Wortegem-Petegem"
+    },
+    "45062": {
+        "fr": "Horebeke"
+    },
+    "45063": {
+        "fr": "Lierde"
+    },
+    "45064": {
+        "fr": "Maarkedal"
+    },
+    "45065": {
+        "fr": "Zwalm"
+    },
+    "45068": {
+        "fr": "Kruisem"
+    },
+    "46020": {
+        "fr": "Sint-Gillis-Waas"
+    },
+    "46021": {
+        "fr": "Sint-Niklaas"
+    },
+    "46024": {
+        "fr": "Stekene"
+    },
+    "46025": {
+        "fr": "Temse"
+    },
+    "46029": {
+        "fr": "Lokeren"
+    },
+    "46030": {
+        "fr": "Beveren-Kruibeke-Zwijndrecht"
+    },
+    "51004": {
+        "fr": "Ath",
+        "nl": "Aat"
+    },
+    "51008": {
+        "fr": "Belœil"
+    },
+    "51009": {
+        "fr": "Bernissart"
+    },
+    "51012": {
+        "fr": "Brugelette"
+    },
+    "51014": {
+        "fr": "Chièvres"
+    },
+    "51017": {
+        "fr": "Ellezelles",
+        "nl": "Elzele"
+    },
+    "51019": {
+        "fr": "Flobecq",
+        "nl": "Vloesberg"
+    },
+    "51065": {
+        "fr": "Frasnes-lez-Anvaing"
+    },
+    "51067": {
+        "fr": "Enghien",
+        "nl": "Edingen"
+    },
+    "51068": {
+        "fr": "Silly",
+        "nl": "Opzullik"
+    },
+    "51069": {
+        "fr": "Lessines",
+        "nl": "Lessen"
+    },
+    "52010": {
+        "fr": "Chapelle-lez-Herlaimont"
+    },
+    "52011": {
+        "fr": "Charleroi"
+    },
+    "52012": {
+        "fr": "Châtelet"
+    },
+    "52015": {
+        "fr": "Courcelles"
+    },
+    "52018": {
+        "fr": "Farciennes"
+    },
+    "52021": {
+        "fr": "Fleurus"
+    },
+    "52022": {
+        "fr": "Fontaine-l'Évêque"
+    },
+    "52025": {
+        "fr": "Gerpinnes"
+    },
+    "52048": {
+        "fr": "Montigny-le-Tilleul"
+    },
+    "52055": {
+        "fr": "Pont-à-Celles"
+    },
+    "52074": {
+        "fr": "Aiseau-Presles"
+    },
+    "52075": {
+        "fr": "Les Bons Villers"
+    },
+    "53014": {
+        "fr": "Boussu"
+    },
+    "53020": {
+        "fr": "Dour"
+    },
+    "53028": {
+        "fr": "Frameries"
+    },
+    "53039": {
+        "fr": "Hensies"
+    },
+    "53044": {
+        "fr": "Jurbise"
+    },
+    "53046": {
+        "fr": "Lens"
+    },
+    "53053": {
+        "fr": "Mons",
+        "nl": "Bergen"
+    },
+    "53065": {
+        "fr": "Quaregnon"
+    },
+    "53068": {
+        "fr": "Quiévrain"
+    },
+    "53070": {
+        "fr": "Saint-Ghislain"
+    },
+    "53082": {
+        "fr": "Colfontaine"
+    },
+    "53083": {
+        "fr": "Honnelles"
+    },
+    "53084": {
+        "fr": "Quévy"
+    },
+    "55004": {
+        "fr": "Braine-le-Comte",
+        "nl": "’s-Gravenbrakel"
+    },
+    "55035": {
+        "fr": "Le Rœulx"
+    },
+    "55040": {
+        "fr": "Soignies",
+        "nl": "Zinnik"
+    },
+    "55050": {
+        "fr": "Écaussinnes"
+    },
+    "55085": {
+        "fr": "Seneffe"
+    },
+    "55086": {
+        "fr": "Manage"
+    },
+    "56001": {
+        "fr": "Anderlues"
+    },
+    "56005": {
+        "fr": "Beaumont"
+    },
+    "56016": {
+        "fr": "Chimay"
+    },
+    "56022": {
+        "fr": "Erquelinnes"
+    },
+    "56029": {
+        "fr": "Froidchapelle"
+    },
+    "56044": {
+        "fr": "Lobbes"
+    },
+    "56049": {
+        "fr": "Merbes-le-Château"
+    },
+    "56051": {
+        "fr": "Momignies"
+    },
+    "56078": {
+        "fr": "Thuin"
+    },
+    "56086": {
+        "fr": "Ham-sur-Heure-Nalinnes"
+    },
+    "56088": {
+        "fr": "Sivry-Rance"
+    },
+    "57003": {
+        "fr": "Antoing"
+    },
+    "57018": {
+        "fr": "Celles"
+    },
+    "57027": {
+        "fr": "Estaimpuis"
+    },
+    "57062": {
+        "fr": "Pecq"
+    },
+    "57064": {
+        "fr": "Péruwelz"
+    },
+    "57072": {
+        "fr": "Rumes"
+    },
+    "57081": {
+        "fr": "Tournai",
+        "nl": "Doornik"
+    },
+    "57093": {
+        "fr": "Brunehaut"
+    },
+    "57094": {
+        "fr": "Leuze-en-Hainaut"
+    },
+    "57095": {
+        "fr": "Mont-de-l'Enclus"
+    },
+    "57096": {
+        "fr": "Mouscron",
+        "nl": "Moeskroen"
+    },
+    "57097": {
+        "fr": "Comines-Warneton",
+        "nl": "Komen-Waasten"
+    },
+    "58001": {
+        "fr": "La Louvière"
+    },
+    "58002": {
+        "fr": "Binche"
+    },
+    "58003": {
+        "fr": "Estinnes"
+    },
+    "58004": {
+        "fr": "Morlanwelz"
+    },
+    "61003": {
+        "fr": "Amay"
+    },
+    "61010": {
+        "fr": "Burdinne"
+    },
+    "61012": {
+        "fr": "Clavier"
+    },
+    "61019": {
+        "fr": "Ferrières"
+    },
+    "61024": {
+        "fr": "Hamoir"
+    },
+    "61028": {
+        "fr": "Héron"
+    },
+    "61031": {
+        "fr": "Huy",
+        "nl": "Hoei"
+    },
+    "61039": {
+        "fr": "Marchin"
+    },
+    "61041": {
+        "fr": "Modave"
+    },
+    "61043": {
+        "fr": "Nandrin"
+    },
+    "61048": {
+        "fr": "Ouffet"
+    },
+    "61063": {
+        "fr": "Verlaine"
+    },
+    "61068": {
+        "fr": "Villers-le-Bouillet"
+    },
+    "61072": {
+        "fr": "Wanze"
+    },
+    "61079": {
+        "fr": "Anthisnes"
+    },
+    "61080": {
+        "fr": "Engis"
+    },
+    "61081": {
+        "fr": "Tinlot"
+    },
+    "62003": {
+        "fr": "Ans"
+    },
+    "62006": {
+        "fr": "Awans"
+    },
+    "62009": {
+        "fr": "Aywaille"
+    },
+    "62011": {
+        "fr": "Bassenge"
+    },
+    "62015": {
+        "fr": "Beyne-Heusay"
+    },
+    "62022": {
+        "fr": "Chaudfontaine"
+    },
+    "62026": {
+        "fr": "Comblain-au-Pont"
+    },
+    "62027": {
+        "fr": "Dalhem"
+    },
+    "62032": {
+        "fr": "Esneux"
+    },
+    "62038": {
+        "fr": "Fléron"
+    },
+    "62051": {
+        "fr": "Herstal"
+    },
+    "62060": {
+        "fr": "Juprelle"
+    },
+    "62063": {
+        "fr": "Liège",
+        "nl": "Luik"
+    },
+    "62079": {
+        "fr": "Oupeye"
+    },
+    "62093": {
+        "fr": "Saint-Nicolas"
+    },
+    "62096": {
+        "fr": "Seraing"
+    },
+    "62099": {
+        "fr": "Soumagne"
+    },
+    "62100": {
+        "fr": "Sprimont"
+    },
+    "62108": {
+        "fr": "Visé",
+        "nl": "Wezet"
+    },
+    "62118": {
+        "fr": "Grâce-Hollogne"
+    },
+    "62119": {
+        "fr": "Blégny"
+    },
+    "62120": {
+        "fr": "Flémalle"
+    },
+    "62121": {
+        "fr": "Neupré"
+    },
+    "62122": {
+        "fr": "Trooz"
+    },
+    "63001": {
+        "fr": "Amblève",
+        "nl": "Amel"
+    },
+    "63003": {
+        "fr": "Aubel"
+    },
+    "63004": {
+        "fr": "Baelen"
+    },
+    "63012": {
+        "fr": "Bullange",
+        "nl": "Bullingen"
+    },
+    "63013": {
+        "fr": "Butgenbach",
+        "nl": "Bütgenbach"
+    },
+    "63020": {
+        "fr": "Dison"
+    },
+    "63023": {
+        "fr": "Eupen"
+    },
+    "63035": {
+        "fr": "Herve"
+    },
+    "63038": {
+        "fr": "Jalhay"
+    },
+    "63040": {
+        "fr": "La Calamine",
+        "nl": "Kelmis"
+    },
+    "63045": {
+        "fr": "Lierneux"
+    },
+    "63046": {
+        "fr": "Limbourg",
+        "nl": "Limburg"
+    },
+    "63048": {
+        "fr": "Lontzen"
+    },
+    "63049": {
+        "fr": "Malmedy"
+    },
+    "63057": {
+        "fr": "Olne"
+    },
+    "63058": {
+        "fr": "Pepinster"
+    },
+    "63061": {
+        "fr": "Raeren"
+    },
+    "63067": {
+        "fr": "Saint-Vith",
+        "nl": "Sankt Vith"
+    },
+    "63072": {
+        "fr": "Spa"
+    },
+    "63073": {
+        "fr": "Stavelot"
+    },
+    "63075": {
+        "fr": "Stoumont"
+    },
+    "63076": {
+        "fr": "Theux"
+    },
+    "63079": {
+        "fr": "Verviers"
+    },
+    "63080": {
+        "fr": "Waimes"
+    },
+    "63084": {
+        "fr": "Welkenraedt",
+        "nl": "Welkenraad"
+    },
+    "63086": {
+        "fr": "Trois-Ponts"
+    },
+    "63087": {
+        "fr": "Burg-Reuland"
+    },
+    "63088": {
+        "fr": "Plombières"
+    },
+    "63089": {
+        "fr": "Thimister-Clermont"
+    },
+    "64008": {
+        "fr": "Berloz"
+    },
+    "64015": {
+        "fr": "Braives"
+    },
+    "64021": {
+        "fr": "Crisnée"
+    },
+    "64023": {
+        "fr": "Donceel"
+    },
+    "64025": {
+        "fr": "Fexhe-le-Haut-Clocher"
+    },
+    "64029": {
+        "fr": "Geer"
+    },
+    "64034": {
+        "fr": "Hannut",
+        "nl": "Hannuit"
+    },
+    "64047": {
+        "fr": "Lincent",
+        "nl": "Lijsem"
+    },
+    "64056": {
+        "fr": "Oreye"
+    },
+    "64063": {
+        "fr": "Remicourt"
+    },
+    "64065": {
+        "fr": "Saint-Georges-sur-Meuse"
+    },
+    "64074": {
+        "fr": "Waremme",
+        "nl": "Borgworm"
+    },
+    "64075": {
+        "fr": "Wasseiges"
+    },
+    "64076": {
+        "fr": "Faimes"
+    },
+    "71002": {
+        "fr": "As"
+    },
+    "71004": {
+        "fr": "Beringen"
+    },
+    "71011": {
+        "fr": "Diepenbeek"
+    },
+    "71016": {
+        "fr": "Genk"
+    },
+    "71017": {
+        "fr": "Gingelom"
+    },
+    "71020": {
+        "fr": "Haelen",
+        "nl": "Halen"
+    },
+    "71024": {
+        "fr": "Herk-de-Stad"
+    },
+    "71034": {
+        "fr": "Leopoldsburg"
+    },
+    "71037": {
+        "fr": "Lummen"
+    },
+    "71045": {
+        "fr": "Nieuwerkerken"
+    },
+    "71053": {
+        "fr": "Saint-Trond",
+        "nl": "Sint-Truiden"
+    },
+    "71066": {
+        "fr": "Zonhoven"
+    },
+    "71067": {
+        "fr": "Zutendaal"
+    },
+    "71070": {
+        "fr": "Heusden-Zolder"
+    },
+    "71071": {
+        "fr": "Tessenderlo-Ham"
+    },
+    "71072": {
+        "fr": "Hasselt"
+    },
+    "72003": {
+        "fr": "Bocholt"
+    },
+    "72004": {
+        "fr": "Bree"
+    },
+    "72018": {
+        "fr": "Kinrooi"
+    },
+    "72020": {
+        "fr": "Lommel"
+    },
+    "72021": {
+        "fr": "Maaseik"
+    },
+    "72030": {
+        "fr": "Peer"
+    },
+    "72037": {
+        "fr": "Hamont-Achel"
+    },
+    "72038": {
+        "fr": "Hechtel-Eksel"
+    },
+    "72039": {
+        "fr": "Houthalen-Helchteren"
+    },
+    "72041": {
+        "fr": "Dilsen-Stokkem"
+    },
+    "72042": {
+        "fr": "Oudsbergen"
+    },
+    "72043": {
+        "fr": "Pelt"
+    },
+    "73001": {
+        "fr": "Alken"
+    },
+    "73022": {
+        "fr": "Heers"
+    },
+    "73028": {
+        "fr": "Herstappe"
+    },
+    "73042": {
+        "fr": "Lanaken"
+    },
+    "73066": {
+        "fr": "Riemst"
+    },
+    "73098": {
+        "fr": "Wellen"
+    },
+    "73107": {
+        "fr": "Maasmechelen"
+    },
+    "73109": {
+        "fr": "Fourons",
+        "nl": "Voeren"
+    },
+    "73110": {
+        "fr": "Bilzen-Hoeselt"
+    },
+    "73111": {
+        "fr": "Tongres-Looz",
+        "nl": "Tongeren-Borgloon"
+    },
+    "81001": {
+        "fr": "Arlon",
+        "nl": "Aarlen"
+    },
+    "81003": {
+        "fr": "Attert"
+    },
+    "81004": {
+        "fr": "Aubange"
+    },
+    "81013": {
+        "fr": "Martelange"
+    },
+    "81015": {
+        "fr": "Messancy"
+    },
+    "82009": {
+        "fr": "Fauvillers"
+    },
+    "82014": {
+        "fr": "Houffalize"
+    },
+    "82032": {
+        "fr": "Vielsalm"
+    },
+    "82036": {
+        "fr": "Vaux-sur-Sûre"
+    },
+    "82037": {
+        "fr": "Gouvy"
+    },
+    "82038": {
+        "fr": "Sainte-Ode"
+    },
+    "82039": {
+        "fr": "Bastogne",
+        "nl": "Bastenaken"
+    },
+    "83012": {
+        "fr": "Durbuy"
+    },
+    "83013": {
+        "fr": "Érezée"
+    },
+    "83028": {
+        "fr": "Hotton"
+    },
+    "83031": {
+        "fr": "La Roche-en-Ardenne"
+    },
+    "83034": {
+        "fr": "Marche-en-Famenne"
+    },
+    "83040": {
+        "fr": "Nassogne"
+    },
+    "83044": {
+        "fr": "Rendeux"
+    },
+    "83049": {
+        "fr": "Tenneville"
+    },
+    "83055": {
+        "fr": "Manhay"
+    },
+    "84009": {
+        "fr": "Bertrix"
+    },
+    "84010": {
+        "fr": "Bouillon"
+    },
+    "84016": {
+        "fr": "Daverdisse"
+    },
+    "84029": {
+        "fr": "Herbeumont"
+    },
+    "84033": {
+        "fr": "Léglise"
+    },
+    "84035": {
+        "fr": "Libin"
+    },
+    "84043": {
+        "fr": "Neufchâteau"
+    },
+    "84050": {
+        "fr": "Paliseul"
+    },
+    "84059": {
+        "fr": "Saint-Hubert"
+    },
+    "84068": {
+        "fr": "Tellin"
+    },
+    "84075": {
+        "fr": "Wellin"
+    },
+    "84077": {
+        "fr": "Libramont-Chevigny"
+    },
+    "85007": {
+        "fr": "Chiny"
+    },
+    "85009": {
+        "fr": "Étalle"
+    },
+    "85011": {
+        "fr": "Florenville"
+    },
+    "85024": {
+        "fr": "Meix-devant-Virton"
+    },
+    "85026": {
+        "fr": "Musson"
+    },
+    "85034": {
+        "fr": "Saint-Léger"
+    },
+    "85039": {
+        "fr": "Tintigny"
+    },
+    "85045": {
+        "fr": "Virton"
+    },
+    "85046": {
+        "fr": "Habay"
+    },
+    "85047": {
+        "fr": "Rouvroy"
+    },
+    "91005": {
+        "fr": "Anhée"
+    },
+    "91013": {
+        "fr": "Beauraing"
+    },
+    "91015": {
+        "fr": "Bièvre"
+    },
+    "91030": {
+        "fr": "Ciney"
+    },
+    "91034": {
+        "fr": "Dinant"
+    },
+    "91054": {
+        "fr": "Gedinne"
+    },
+    "91059": {
+        "fr": "Hamois"
+    },
+    "91064": {
+        "fr": "Havelange"
+    },
+    "91072": {
+        "fr": "Houyet"
+    },
+    "91103": {
+        "fr": "Onhaye"
+    },
+    "91114": {
+        "fr": "Rochefort"
+    },
+    "91120": {
+        "fr": "Somme-Leuze"
+    },
+    "91141": {
+        "fr": "Yvoir"
+    },
+    "91142": {
+        "fr": "Hastière"
+    },
+    "91143": {
+        "fr": "Vresse-sur-Semois"
+    },
+    "92003": {
+        "fr": "Andenne"
+    },
+    "92006": {
+        "fr": "Assesse"
+    },
+    "92035": {
+        "fr": "Éghezée"
+    },
+    "92045": {
+        "fr": "Floreffe"
+    },
+    "92048": {
+        "fr": "Fosses-la-Ville"
+    },
+    "92054": {
+        "fr": "Gesves"
+    },
+    "92087": {
+        "fr": "Mettet"
+    },
+    "92094": {
+        "fr": "Namur",
+        "nl": "Namen"
+    },
+    "92097": {
+        "fr": "Ohey"
+    },
+    "92101": {
+        "fr": "Profondeville"
+    },
+    "92114": {
+        "fr": "Sombreffe"
+    },
+    "92137": {
+        "fr": "Sambreville"
+    },
+    "92138": {
+        "fr": "Fernelmont"
+    },
+    "92140": {
+        "fr": "Jemeppe-sur-Sambre"
+    },
+    "92141": {
+        "fr": "La Bruyère"
+    },
+    "92142": {
+        "fr": "Gembloux",
+        "nl": "Gembloers"
+    },
+    "93010": {
+        "fr": "Cerfontaine"
+    },
+    "93014": {
+        "fr": "Couvin"
+    },
+    "93018": {
+        "fr": "Doische"
+    },
+    "93022": {
+        "fr": "Florennes"
+    },
+    "93056": {
+        "fr": "Philippeville"
+    },
+    "93088": {
+        "fr": "Walcourt"
+    },
+    "93090": {
+        "fr": "Viroinval"
+    }
+}

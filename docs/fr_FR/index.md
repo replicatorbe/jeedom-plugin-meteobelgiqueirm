@@ -1,0 +1,174 @@
+# Météo Belgique IRM
+
+Météo belge complète dans Jeedom, à partir des données de l'Institut Royal
+Météorologique : observations, prévisions à sept jours, prévisions horaires,
+prévision de pluie à courte échéance et avertissements officiels jaune, orange
+et rouge.
+
+> Ce plugin n'est pas affilié à l'IRM et n'est ni parrainé ni approuvé par lui.
+> Il lit l'interface que l'application mobile officielle utilise pour elle-même.
+> Cette interface n'est pas documentée et peut changer sans préavis : c'est
+> arrivé trois fois en deux ans. Le plugin est écrit pour continuer d'afficher ce
+> qu'il sait plutôt que de s'arrêter, mais une rupture reste possible.
+
+## Configuration
+
+Aucune clé, aucun compte, aucune dépendance à installer.
+
+1. **Ajouter une commune**, et lui donner un nom — « Maison », « Bureau ».
+2. Dans l'onglet *Équipement*, taper les premières lettres de la commune et
+   cliquer sur la loupe. Les 565 communes belges sont livrées avec le plugin :
+   la recherche fonctionne sans réseau, et accepte le français comme le
+   néerlandais — « Elsene » trouve Ixelles, « Brugge » trouve Bruges.
+3. **Choisir la commune dans la liste.** Le code INS est affiché à côté du nom :
+   il lève l'ambiguïté entre communes aux noms voisins, par exemple
+   Sint-Niklaas (46021) et Saint-Nicolas (62093).
+4. **Enregistrer.** Les commandes sont créées et la météo est relevée aussitôt.
+
+Le réglage global du plugin ne contient que le délai d'attente des requêtes et
+la langue des textes de l'IRM. Les valeurs par défaut conviennent.
+
+## Rythme de mise à jour
+
+Le plugin relit la météo **toutes les dix minutes**, ce qui est le pas auquel
+l'IRM publie ses observations et sa séquence radar : interroger plus souvent ne
+rapporterait rien de neuf.
+
+Après un échec, l'attente double à chaque tentative, de dix minutes à une heure.
+Une commune momentanément injoignable est retrouvée au passage suivant ; une
+commune devenue invalide cesse de consommer des requêtes pour rien.
+
+## Les commandes
+
+### L'instant présent
+
+| Commande | Ce qu'elle contient |
+|---|---|
+| `temperature` | température observée, en °C |
+| `condition`, `condition_id` | temps en clair, et son code au format WeatherAPI pour les widgets tiers |
+| `pressure`, `wind_speed`, `wind_gust`, `wind_direction` | pression en hPa, vent et rafales en km/h, direction en degrés |
+| `uv` | indice UV, quand l'IRM le publie |
+| `sunrise`, `sunset` | lever et coucher, en entier `HMM` — 732 pour 7 h 32, la convention de Jeedom |
+| `data_age` | âge du dernier relevé, en minutes |
+
+### La pluie à courte échéance
+
+C'est le bloc le plus utile en domotique : c'est lui qui rentre le linge et
+ferme les vélux.
+
+| Commande | Ce qu'elle contient |
+|---|---|
+| `rain_now` | intensité actuelle, en mm/h |
+| `rain_next` | minutes avant la prochaine pluie, `-1` si rien n'est annoncé |
+| `rain_soon` | 1 s'il va pleuvoir dans les trois heures |
+| `rain_hint` | la phrase de l'IRM : « Pas de pluie prévue prochainement », « Pluie pendant 2h30 » |
+
+### Les avertissements
+
+| Commande | Ce qu'elle contient |
+|---|---|
+| `warning_active` | 1 si un avertissement est **en cours** |
+| `warning_level` | `-1` inconnu, `0` aucun, `1` jaune, `2` orange, `3` rouge |
+| `warning_slug` | type du plus grave, en identifiant stable : `wind`, `rain`, `ice_or_snow`, `thunder`, `fog`, `cold`, `heat`… |
+| `warning_slugs` | tous les types en cours, séparés par des virgules et **triés** |
+| `warning_label`, `warning_text` | libellé lisible et texte de l'IRM |
+| `warning_end` | fin annoncée, en date absolue |
+| `next_warning_level`, `next_warning_slug`, `next_warning_start` | le prochain avertissement **à venir** |
+
+> **Annoncé n'est pas en cours.** L'IRM publie ses avertissements à l'avance,
+> parfois douze heures avant. Un scénario qui se déclencherait sur la simple
+> présence d'un avertissement fermerait les volets une demi-journée trop tôt.
+> C'est pourquoi `warning_active` et `warning_level` ne parlent que de ce qui est
+> **en cours**, et que le prochain avertissement a ses propres commandes.
+
+### Les prévisions
+
+`temperature_1_min` à `temperature_7_min`, et de même `_max` — attention, **le
+numéro est au milieu** : `temperature_3_max`, pas `temperature_max_3`. Plus
+`condition_1` à `condition_7`, `condition_id_1` à `4`, et `rain_chance_1` à `3`.
+
+Les prévisions horaires suivent : `temperature_h1` à `h3`, `condition_h1` à `h3`,
+`rain_chance_h1` à `h3`.
+
+Enfin `bulletin_0` et `bulletin_1` portent le **bulletin rédigé de l'IRM** pour
+aujourd'hui et demain, en français.
+
+### Ce que le plugin ne fournit pas
+
+**L'humidité.** Elle n'existe nulle part dans les données de l'IRM. Plutôt que de
+publier une commande qui afficherait 0 %, elle n'est pas créée du tout.
+
+Les pollens ne sont pas repris non plus : l'IRM ne les publie qu'en image, et ce
+format a changé deux fois en dix-huit mois.
+
+## Écrire un scénario
+
+Fermer les volets sur avertissement orange ou rouge :
+
+```
+Si [Maison][Niveau d'avertissement] >= 2
+```
+
+Le test `>= 2` écarte naturellement le `-1` qui signifie « on ne sait pas » :
+une panne de réseau ne déclenchera donc rien.
+
+Être prévenu seulement pour le vent :
+
+```
+Si [Maison][Types d'avertissement] contient "wind"
+```
+
+Les identifiants ne sont pas traduits et ne changent pas avec la langue : un
+scénario écrit sur `wind` continue de fonctionner.
+
+Rentrer le linge avant la pluie :
+
+```
+Si [Maison][Pluie prochainement] == 1
+```
+
+> **Pas de risque de rebouclage.** Jeedom ne déclenche un scénario que lorsque la
+> valeur d'une commande change. Un avertissement orange qui dure six heures est
+> écrit une fois et ne réveille plus rien ensuite. C'est pourquoi aucune commande
+> ne contient de durée relative : un « fin dans 3 h » changerait à chaque passage
+> du cron et redéclencherait tout, toutes les dix minutes.
+
+## Quand l'IRM est indisponible
+
+Le plugin **n'efface jamais ce qu'il sait**. Les dernières valeurs connues
+restent affichées, mais datées de leur vraie heure de relevé :
+
+- la tuile affiche « données de 11:40 » en rouge au-delà d'une heure ;
+- `data_age` grimpe, et passe en alerte à 30 puis 60 minutes ;
+- au bout de 45 minutes sans relevé, Jeedom marque lui-même l'équipement en
+  *timeout*, le signale sur le dashboard et sur la page Santé, et poste un
+  message ;
+- un message apparaît dans le centre de messages, et disparaît au premier
+  relevé réussi.
+
+C'est délibéré : une donnée périmée qui se présente comme fraîche est plus
+dangereuse qu'une erreur franche.
+
+## La tuile
+
+Une seule commande est visible par défaut, la tuile *Météo*, qui rassemble tout :
+bandeau d'avertissement s'il y en a un, température et temps, pluie à courte
+échéance, minimum et maximum du jour, les trois prochains jours, et l'âge des
+données.
+
+Trois options se règlent dans la configuration du widget : `days`, `rain` et
+`range` à `0` masquent respectivement la bande des trois jours, la ligne de pluie
+et les températures extrêmes.
+
+Les autres commandes existent mais sont masquées : elles servent aux scénarios et
+aux graphiques. Elles s'affichent une par une depuis l'onglet *Commandes*.
+
+## Historisation
+
+Cinq commandes sont historisées par défaut : température, pression, vitesse du
+vent, niveau d'avertissement et pluie actuelle. Les prévisions ne le sont pas —
+l'historique d'une prévision réécrite toutes les heures ne raconte pas le temps
+qu'il a fait, mais les hésitations du modèle.
+
+Ne jamais historiser la tuile ni les bulletins : ce sont des textes longs, et la
+colonne d'historique de Jeedom est limitée à 127 caractères.

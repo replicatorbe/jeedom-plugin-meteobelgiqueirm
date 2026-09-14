@@ -1,0 +1,4 @@
+# Jeux d'essai et rejeu hors ligne : outils de développement, inutiles côté
+# Jeedom. Les fixtures gardent une trace de chaque rupture de schéma de l'API
+# de l'IRM ; elles servent à écrire des tests, pas à faire tourner le plugin.
+tests/
