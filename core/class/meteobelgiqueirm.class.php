@@ -181,6 +181,19 @@ class meteobelgiqueirm extends eqLogic {
         17 => array('coldspell',                   'Vague de froid'),
     );
 
+    /* Niveau en un mot, pour la balise #niveau# du message d'alerte. */
+    const WARNING_COLORS = array(1 => 'jaune', 2 => 'orange', 3 => 'rouge');
+
+    /*
+     * Seuil de notification par défaut. L'orange et non le jaune : en Belgique
+     * le jaune se déclenche pour du brouillard ou soixante kilomètres-heure de
+     * vent, plusieurs fois par mois. Une notification qui sonne trop souvent est
+     * coupée au bout d'une semaine, et ne sert plus le jour où elle compte.
+     */
+    const ALERT_THRESHOLD_DEFAULT = 2;
+
+    const ALERT_MESSAGE_DEFAULT = 'Vigilance #niveau# — #type# à #commune#, jusqu\'au #fin#';
+
     /* L'IRM n'a que trois niveaux ; le zéro est notre convention pour « rien ». */
     const WARNING_LEVELS = array(
         0 => 'Aucun avertissement',
@@ -273,6 +286,14 @@ class meteobelgiqueirm extends eqLogic {
         if ((int) $this->getTimeout() === 0) {
             $this->setTimeout(self::TIMEOUT_MINUTES);
         }
+
+        /*
+         * Les réglages d'alerte doivent exister AVANT le premier affichage du
+         * formulaire. Sans cela, le menu déroulant se présente sur sa première
+         * entrée — « Jamais » — et le premier enregistrement désactiverait les
+         * notifications sans que personne ne l'ait demandé.
+         */
+        $this->applyDefaults();
     }
 
     public function postSave() {
@@ -424,7 +445,7 @@ class meteobelgiqueirm extends eqLogic {
         ));
 
         $this->addCmdIfMissing('city', 'Commune', 'info', 'string', array('order' => $order++));
-        $this->addCmdIfMissing('obs_time', 'Heure de l\'observation', 'info', 'string', array('order' => $order++));
+        $this->addCmdIfMissing('obs_time', 'Heure du relevé', 'info', 'string', array('order' => $order++));
 
         /*
          * L'âge est la seule commande qui dise si l'on regarde une vraie donnée
@@ -455,10 +476,10 @@ class meteobelgiqueirm extends eqLogic {
         $this->addCmdIfMissing('rain_hint', 'Résumé pluie', 'info', 'string', array('order' => $order++));
 
         /* --- Avertissements --- */
-        $this->addCmdIfMissing('warning_active', 'Avertissement actif', 'info', 'binary', array(
+        $this->addCmdIfMissing('warning_active', 'Vigilance en cours', 'info', 'binary', array(
             'order' => $order++, 'template' => 'warning',
         ));
-        $level = $this->addCmdIfMissing('warning_level', 'Niveau d\'avertissement', 'info', 'numeric', array(
+        $level = $this->addCmdIfMissing('warning_level', 'Niveau de vigilance', 'info', 'numeric', array(
             'order' => $order++, 'isHistorized' => 1, 'icon' => 'fas fa-exclamation-triangle',
         ));
         /* Ces seuils ne colorent pas la tuile — le gabarit s'en charge — mais ils
@@ -469,15 +490,15 @@ class meteobelgiqueirm extends eqLogic {
             $level->setAlert('dangerif', '#value# >= 2');
             $level->save();
         }
-        $this->addCmdIfMissing('warning_slug', 'Type d\'avertissement', 'info', 'string', array('order' => $order++));
-        $this->addCmdIfMissing('warning_slugs', 'Types d\'avertissement', 'info', 'string', array('order' => $order++));
-        $this->addCmdIfMissing('warning_label', 'Avertissement', 'info', 'string', array('order' => $order++));
-        $this->addCmdIfMissing('warning_text', 'Texte de l\'avertissement', 'info', 'string', array('order' => $order++));
-        $this->addCmdIfMissing('warning_end', 'Fin de l\'avertissement', 'info', 'string', array('order' => $order++));
-        $this->addCmdIfMissing('warning_count', 'Nombre d\'avertissements', 'info', 'numeric', array('order' => $order++));
-        $this->addCmdIfMissing('next_warning_level', 'Niveau du prochain avertissement', 'info', 'numeric', array('order' => $order++));
-        $this->addCmdIfMissing('next_warning_slug', 'Type du prochain avertissement', 'info', 'string', array('order' => $order++));
-        $this->addCmdIfMissing('next_warning_start', 'Début du prochain avertissement', 'info', 'string', array('order' => $order++));
+        $this->addCmdIfMissing('warning_slug', 'Type de vigilance', 'info', 'string', array('order' => $order++));
+        $this->addCmdIfMissing('warning_slugs', 'Types de vigilance', 'info', 'string', array('order' => $order++));
+        $this->addCmdIfMissing('warning_label', 'Vigilance', 'info', 'string', array('order' => $order++));
+        $this->addCmdIfMissing('warning_text', 'Texte de la vigilance', 'info', 'string', array('order' => $order++));
+        $this->addCmdIfMissing('warning_end', 'Fin de la vigilance', 'info', 'string', array('order' => $order++));
+        $this->addCmdIfMissing('warning_count', 'Nombre de vigilances', 'info', 'numeric', array('order' => $order++));
+        $this->addCmdIfMissing('next_warning_level', 'Niveau de la prochaine vigilance', 'info', 'numeric', array('order' => $order++));
+        $this->addCmdIfMissing('next_warning_slug', 'Type de la prochaine vigilance', 'info', 'string', array('order' => $order++));
+        $this->addCmdIfMissing('next_warning_start', 'Début de la prochaine vigilance', 'info', 'string', array('order' => $order++));
 
         /* --- Bulletins rédigés : aujourd'hui et demain. Au-delà, personne ne
          * les lit, et ils ne sont pas historisables (history.value est un
@@ -524,9 +545,17 @@ class meteobelgiqueirm extends eqLogic {
             ));
         }
 
-        /* --- Action --- */
+        /* --- Actions --- */
         $this->addCmdIfMissing('refresh', 'Rafraîchir', 'action', 'other', array(
             'order' => $order++, 'icon' => 'fas fa-sync',
+        ));
+        /*
+         * Sans ce bouton, on ne découvrirait que sa configuration d'alerte est
+         * fausse qu'au milieu de la prochaine tempête — le pire moment pour
+         * s'apercevoir qu'aucune commande n'était sélectionnée.
+         */
+        $this->addCmdIfMissing('test_alert', 'Tester une alerte', 'action', 'other', array(
+            'order' => $order++, 'icon' => 'fas fa-bell',
         ));
     }
 
@@ -537,11 +566,71 @@ class meteobelgiqueirm extends eqLogic {
      * l'IRM ferait partir la page en timeout — en écrivant au passage des
      * valeurs de repli qui réveilleraient les scénarios de l'utilisateur.
      */
+    /*
+     * Noms de commandes corrigés après coup.
+     *
+     * cmd::setName() passe par cleanComponanteName(), qui retire les
+     * apostrophes : « Niveau d'avertissement » devenait « Niveau
+     * davertissement » en base. Les libellés ont été réécrits sans apostrophe —
+     * « vigilance » est d'ailleurs le terme de l'IRM, et il est plus court.
+     *
+     * On ne renomme que ce qui porte encore exactement l'ancien nom dégradé :
+     * un nom que l'utilisateur a personnalisé lui appartient.
+     */
+    const LEGACY_NAMES = array(
+        'obs_time'           => array('Heure de lobservation', 'Heure du relevé'),
+        'warning_active'     => array('Avertissement actif', 'Vigilance en cours'),
+        'warning_level'      => array('Niveau davertissement', 'Niveau de vigilance'),
+        'warning_slug'       => array('Type davertissement', 'Type de vigilance'),
+        'warning_slugs'      => array('Types davertissement', 'Types de vigilance'),
+        'warning_label'      => array('Avertissement', 'Vigilance'),
+        'warning_text'       => array('Texte de lavertissement', 'Texte de la vigilance'),
+        'warning_end'        => array('Fin de lavertissement', 'Fin de la vigilance'),
+        'warning_count'      => array('Nombre davertissements', 'Nombre de vigilances'),
+        'test_alert'         => array('Tester lalerte', 'Tester une alerte'),
+        'next_warning_level' => array('Niveau du prochain avertissement', 'Niveau de la prochaine vigilance'),
+        'next_warning_slug'  => array('Type du prochain avertissement', 'Type de la prochaine vigilance'),
+        'next_warning_start' => array('Début du prochain avertissement', 'Début de la prochaine vigilance'),
+    );
+
+    private function renameLegacyCommands() {
+        foreach (self::LEGACY_NAMES as $logicalId => $names) {
+            $cmd = $this->getCmd(null, $logicalId);
+            if (!is_object($cmd) || $cmd->getName() !== __($names[0], __FILE__)) {
+                continue;
+            }
+            $cmd->setName(__($names[1], __FILE__));
+            $cmd->save();
+        }
+    }
+
+    /*
+     * Les réglages par défaut n'existent que pour les équipements créés depuis
+     * qu'ils ont été introduits. Sans ce rattrapage, une commune plus ancienne
+     * ouvrirait le formulaire d'alerte sur « Jamais » et le premier
+     * enregistrement couperait ses notifications.
+     */
+    private function applyDefaults() {
+        foreach (array(
+            'alert_threshold' => self::ALERT_THRESHOLD_DEFAULT,
+            'alert_message'   => self::ALERT_MESSAGE_DEFAULT,
+            'alert_on_end'      => 0,
+            'alert_on_upcoming' => 0,
+        ) as $key => $default) {
+            if ($this->getConfiguration($key, '') === '') {
+                $this->setConfiguration($key, $default);
+            }
+        }
+    }
+
     public static function rebuildCommands() {
         $count = 0;
         foreach (self::byType(__CLASS__) as $eqLogic) {
             try {
                 $eqLogic->createCommands();
+                $eqLogic->renameLegacyCommands();
+                $eqLogic->applyDefaults();
+                $eqLogic->save();
                 $eqLogic->refreshWidget();
                 $count++;
             } catch (Throwable $e) {
@@ -708,6 +797,14 @@ class meteobelgiqueirm extends eqLogic {
 
         /* --- La tuile --- */
         $this->publishCmd('resume', $this->buildResume($_model, $w, $nowcast, $ww, $now), $when);
+
+        /*
+         * Les notifications sont évaluées à chaque passage du cron, y compris
+         * lorsqu'aucun appel réseau n'a eu lieu : l'IRM publie ses avertissements
+         * à l'avance, et une vigilance qui commence à 14 h doit partir à 14 h,
+         * pas au prochain succès réseau.
+         */
+        $this->checkAlerts($_model, $now);
 
         $this->refreshWidget();
     }
@@ -1394,6 +1491,235 @@ class meteobelgiqueirm extends eqLogic {
         return $out;
     }
 
+    /* ============================================================== ALERTES */
+
+    /*
+     * Décide s'il faut prévenir, et le fait.
+     *
+     * Le problème n'est pas de repérer une vigilance : c'est de ne pas la
+     * répéter. L'IRM renvoie la même alerte à chaque appel pendant toute sa
+     * durée — six heures d'orange, un passage toutes les dix minutes, cela
+     * ferait trente-six notifications pour un seul épisode.
+     *
+     * On mémorise donc, par TYPE de phénomène, le niveau déjà annoncé. Ce qui
+     * déclenche : un type qu'on ne connaissait pas, ou un niveau plus haut
+     * qu'annoncé. Ce qui ne déclenche pas : le même niveau — même si l'IRM
+     * prolonge l'échéance, ce qu'elle fait souvent — et un niveau qui retombe,
+     * car une bonne nouvelle annoncée comme un incident reste un incident.
+     *
+     * On ignore délibérément les horodatages dans cette comparaison : ce sont
+     * eux qui bougent, pas le danger.
+     */
+    private function checkAlerts($_model, $_now) {
+        $threshold = (int) $this->getConfiguration('alert_threshold', self::ALERT_THRESHOLD_DEFAULT);
+        if ($threshold < 1) {
+            return;
+        }
+        if (!isset($_model['warnings']) || !is_array($_model['warnings'])) {
+            return;
+        }
+
+        $memory = $this->getCache('alerted', array());
+        if (!is_array($memory)) {
+            $memory = array();
+        }
+
+        $withUpcoming = ((int) $this->getConfiguration('alert_on_upcoming', 0) === 1);
+
+        /* Une seule alerte par type : si l'IRM en publie deux du même
+         * phénomène, seule la plus grave compte. */
+        $active = array();
+        foreach ($_model['warnings'] as $w) {
+            $current = ($w['from'] <= $_now && $_now < $w['to']);
+            $upcoming = ($withUpcoming && $_now < $w['from']);
+            if (!$current && !$upcoming) {
+                continue;
+            }
+            $slug = $w['slug'];
+            if (!isset($active[$slug]) || (int) $w['level'] > (int) $active[$slug]['level']) {
+                $w['upcoming'] = $upcoming ? 1 : 0;
+                $active[$slug] = $w;
+            }
+        }
+
+        $trigger = false;
+        $fresh = array();
+        foreach ($active as $slug => $w) {
+            $level = (int) $w['level'];
+            /*
+             * Les alertes sous le seuil sont mémorisées elles aussi, sans
+             * déclencher : c'est ce qui permet de repérer plus tard le passage
+             * du jaune à l'orange comme une aggravation, et non comme une
+             * alerte neuve.
+             */
+            $fresh[$slug] = $level;
+            if ($level < $threshold) {
+                continue;
+            }
+            $known = isset($memory[$slug]) ? (int) $memory[$slug] : null;
+            if ($known === null || $level > $known) {
+                $trigger = true;
+            }
+        }
+
+        /* Ce qui a disparu depuis le dernier passage, et qui avait été annoncé. */
+        $ended = array();
+        foreach ($memory as $slug => $level) {
+            if (!isset($fresh[$slug]) && (int) $level >= $threshold) {
+                $ended[] = $slug;
+            }
+        }
+
+        $this->setCache('alerted', $fresh);
+
+        if ($trigger) {
+            /*
+             * Le message annonce TOUTES les alertes en cours, y compris celles
+             * qui restent sous le seuil. Un orage orange accompagné d'un vent
+             * jaune, ce n'est pas la même soirée qu'un orage seul : il faut
+             * savoir qu'il y a aussi tout à rentrer dans le jardin.
+             */
+            $this->runAlertCmds($this->buildAlertMessage($_model, $active));
+            return;
+        }
+
+        if (!empty($ended) && (int) $this->getConfiguration('alert_on_end', 0) === 1) {
+            $names = array();
+            foreach ($ended as $slug) {
+                $names[] = $this->slugLabel($slug);
+            }
+            sort($names, SORT_STRING);
+            $this->runAlertCmds(sprintf(
+                __('Fin de vigilance à %s : %s', __FILE__),
+                $this->cityName(), implode(', ', $names)
+            ));
+        }
+    }
+
+    /*
+     * Compose le texte envoyé. La première ligne suit le gabarit choisi par
+     * l'utilisateur et décrit le phénomène le plus grave ; les autres alertes en
+     * cours sont listées ensuite, sans quoi le message serait trompeur par
+     * omission.
+     */
+    private function buildAlertMessage($_model, $_active) {
+        /* Tri par gravité décroissante, puis par nom, pour que deux alertes de
+         * même niveau ne s'inversent pas d'un envoi à l'autre. */
+        $sorted = array_values($_active);
+        usort($sorted, function ($a, $b) {
+            if ((int) $a['level'] !== (int) $b['level']) {
+                return (int) $b['level'] - (int) $a['level'];
+            }
+            return strcmp($a['name'], $b['name']);
+        });
+
+        $worst = $sorted[0];
+        $level = (int) $worst['level'];
+
+        $template = trim((string) $this->getConfiguration('alert_message', ''));
+        if ($template === '') {
+            $template = __(self::ALERT_MESSAGE_DEFAULT, __FILE__);
+        }
+
+        $message = str_replace(
+            array('#commune#', '#niveau#', '#type#', '#texte#', '#debut#', '#fin#'),
+            array(
+                $this->cityName(),
+                isset(self::WARNING_COLORS[$level]) ? __(self::WARNING_COLORS[$level], __FILE__) : '',
+                $worst['name'],
+                $worst['text'],
+                date('d/m à H:i', $worst['from']),
+                date('d/m à H:i', $worst['to']),
+            ),
+            $template
+        );
+
+        if (count($sorted) > 1) {
+            $others = array();
+            foreach (array_slice($sorted, 1) as $w) {
+                $l = (int) $w['level'];
+                $others[] = $w['name'] . ' (' . (isset(self::WARNING_COLORS[$l])
+                    ? __(self::WARNING_COLORS[$l], __FILE__) : '?') . ')';
+            }
+            $message .= "\n" . __('Également en cours :', __FILE__) . ' ' . implode(', ', $others);
+        }
+
+        return $message;
+    }
+
+    /*
+     * Exécute les commandes choisies. Une commande supprimée depuis, ou un
+     * plugin de notification désactivé, ne doit pas empêcher les autres de
+     * partir : chacune est tentée séparément.
+     */
+    public function runAlertCmds($_message) {
+        $ids = array_filter(array_map('trim', explode(',', (string) $this->getConfiguration('alert_cmds', ''))));
+        if (empty($ids)) {
+            log::add(__CLASS__, 'warning', $this->getHumanName() . ' : '
+                . __('aucune action choisie, l\'alerte n\'a été envoyée nulle part.', __FILE__));
+            return 0;
+        }
+
+        $title = __('Alerte météo', __FILE__) . ' — ' . $this->cityName();
+        $sent = 0;
+
+        foreach ($ids as $id) {
+            try {
+                /* Le sélecteur du coeur rend « #42# » ; la valeur stockée est
+                 * nettoyée, mais un ancien enregistrement peut encore porter les
+                 * dièses. */
+                $cmd = cmd::byId(str_replace('#', '', $id));
+                if (!is_object($cmd)) {
+                    throw new Exception(__('commande introuvable', __FILE__));
+                }
+                $cmd->execCmd(array('title' => $title, 'message' => $_message));
+                $sent++;
+            } catch (Throwable $e) {
+                log::add(__CLASS__, 'error', $this->getHumanName() . ' : '
+                    . __('action', __FILE__) . ' ' . $id . ' — ' . $e->getMessage());
+            }
+        }
+
+        if ($sent > 0) {
+            /* En « info » et non en « error » : au-delà du niveau 400, le coeur
+             * crée tout seul un message dans le centre de notifications, et la
+             * cloche sonnerait en double. */
+            log::add(__CLASS__, 'info', $this->getHumanName() . ' : '
+                . sprintf(__('alerte envoyée à %d action(s).', __FILE__), $sent) . ' ' . $_message);
+        }
+        return $sent;
+    }
+
+    /* Message d'essai, pour vérifier sa configuration sans attendre la
+     * prochaine tempête. N'écrit rien dans la mémoire des alertes. */
+    public function testAlert() {
+        return $this->runAlertCmds(sprintf(
+            __('Essai : vigilance orange — Orage à %s, jusqu\'au %s', __FILE__),
+            $this->cityName(), date('d/m à H:i', time() + 10800)
+        ));
+    }
+
+    /* Nom lisible d'un type d'avertissement, à partir de son identifiant. */
+    private function slugLabel($_slug) {
+        foreach (self::WARNING_TYPES as $type) {
+            if ($type[0] === $_slug) {
+                return __($type[1], __FILE__);
+            }
+        }
+        return $_slug;
+    }
+
+    /* Nom de la commune : celui renvoyé par l'IRM, sinon celui de la liste
+     * livrée, sinon le nom de l'équipement. */
+    public function cityName() {
+        $model = $this->getForecast();
+        if (!empty($model['city'])) {
+            return $model['city'];
+        }
+        $name = self::communeName($this->signature());
+        return $name !== '' ? $name : $this->getName();
+    }
+
     /* ================================================================ CACHE */
 
     private function forecastKey() {
@@ -1815,6 +2141,13 @@ class meteobelgiqueirmCmd extends cmd {
                 $eqLogic->update(true);
                 if ($eqLogic->getRefreshError() != '') {
                     throw new Exception($eqLogic->getRefreshError());
+                }
+                return true;
+
+            case 'test_alert':
+                $sent = $eqLogic->testAlert();
+                if ($sent === 0) {
+                    throw new Exception(__('Aucune action n\'a pu être exécutée : vérifiez la liste dans l\'onglet Équipement.', __FILE__));
                 }
                 return true;
         }

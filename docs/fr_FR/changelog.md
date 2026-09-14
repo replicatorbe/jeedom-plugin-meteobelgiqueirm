@@ -15,5 +15,9 @@ Première version.
 - Tuile unique regroupant l'essentiel, déclinée à l'identique sur mobile, avec
   une bande heure par heure : température et risque de pluie pour chaque heure
   restante de la journée, en barres lisibles d'un coup d'œil.
+- Notification automatique en cas de vigilance : seuil configurable, autant
+  d'actions Jeedom que voulu, message personnalisable, et une règle
+  anti-répétition qui n'annonce une vigilance qu'une fois — à nouveau seulement
+  si elle s'aggrave ou si un nouveau phénomène apparaît.
 - Les valeurs sont publiées avec leur vraie date de relevé : une donnée périmée
   se voit, et Jeedom marque l'équipement en défaut au bout de 45 minutes.

@@ -163,6 +163,142 @@ function meteobelgiqueirmPickCommune(_select) {
   meteobelgiqueirmStatus('{{Commune retenue. Enregistrez pour relever la météo.}}', 'info')
 }
 
+/* ================================================================ ALERTES */
+
+/* La liste des actions est stockée dans un seul champ, en identifiants séparés
+   par des virgules : un tableau imbriqué dans la configuration se relit mal
+   depuis le formulaire du coeur, et se perd au premier enregistrement fait
+   depuis un autre écran. */
+function meteobelgiqueirmActionField() {
+  return document.querySelector('.eqLogicAttr[data-l1key="configuration"][data-l2key="alert_cmds"]')
+}
+
+function meteobelgiqueirmActionIds() {
+  var field = meteobelgiqueirmActionField()
+  if (field === null || field.value === '') { return [] }
+  /* Un identifiant de commande est un entier : parseInt écarte d'un coup les
+     espaces, les dièses que rend le sélecteur du coeur, et les restes d'une
+     saisie manuelle. */
+  var out = []
+  var parts = field.value.split(',')
+  for (var i = 0; i < parts.length; i++) {
+    var id = parseInt(parts[i].replace('#', ''), 10)
+    if (!isNaN(id) && id > 0) { out.push(String(id)) }
+  }
+  return out
+}
+
+function meteobelgiqueirmSetActionIds(_ids) {
+  var field = meteobelgiqueirmActionField()
+  if (field === null) { return }
+  field.value = _ids.join(',')
+  meteobelgiqueirmShowActions()
+}
+
+/* Affiche chaque action avec son nom complet, et une croix pour la retirer. Un
+   identifiant nu ne dit rien à personne trois mois plus tard. */
+function meteobelgiqueirmShowActions() {
+  var box = meteobelgiqueirmEl('div_meteobelgiqueirmActions')
+  if (box === null) { return }
+  box.innerHTML = ''
+
+  var ids = meteobelgiqueirmActionIds()
+  if (ids.length === 0) {
+    var none = document.createElement('div')
+    none.className = 'help-block'
+    none.style.margin = '0 0 5px 0'
+    none.textContent = '{{Aucune action : vous ne serez prévenu de rien.}}'
+    box.appendChild(none)
+    return
+  }
+
+  for (var i = 0; i < ids.length; i++) {
+    var row = document.createElement('div')
+    row.style.marginBottom = '3px'
+
+    var tag = document.createElement('span')
+    tag.className = 'label label-info'
+    tag.style.fontSize = '1em'
+    tag.style.marginRight = '5px'
+    /* jeedom.cmd.byId est asynchrone : on affiche l'identifiant d'abord, le nom
+       le remplace dès qu'il arrive. Sans cela, la liste clignote à vide. */
+    tag.textContent = '#' + ids[i]
+    row.appendChild(tag)
+
+    var remove = document.createElement('a')
+    remove.className = 'btn btn-danger btn-xs meteobelgiqueirmDropAction'
+    remove.setAttribute('data-cmd-id', ids[i])
+    remove.innerHTML = '<i class="fas fa-times"></i>'
+    row.appendChild(remove)
+
+    box.appendChild(row)
+    meteobelgiqueirmNameAction(ids[i], tag)
+  }
+}
+
+function meteobelgiqueirmNameAction(_id, _tag) {
+  if (typeof jeedom === 'undefined' || !isset(jeedom.cmd) || !isset(jeedom.cmd.byId)) { return }
+  jeedom.cmd.byId({
+    id: _id,
+    error: function () {
+      /* Commande supprimée depuis : le dire plutôt que de laisser un numéro
+         qui ne correspond plus à rien. */
+      _tag.className = 'label label-danger'
+      _tag.textContent = '#' + _id + ' {{(introuvable)}}'
+    },
+    success: function (result) {
+      _tag.textContent = result.human !== undefined ? result.human : ('#' + _id)
+    }
+  })
+}
+
+function meteobelgiqueirmAddAction() {
+  if (typeof jeedom === 'undefined' || !isset(jeedom.cmd) || !isset(jeedom.cmd.getSelectModal)) { return }
+  jeedom.cmd.getSelectModal({ cmd: { type: 'action' } }, function (result) {
+    if (!isset(result.cmd) || !isset(result.cmd.id) || result.cmd.id === '') { return }
+    var id = parseInt(String(result.cmd.id).replace('#', ''), 10)
+    if (isNaN(id) || id <= 0) { return }
+    id = String(id)
+    var ids = meteobelgiqueirmActionIds()
+    /* Deux fois la même action enverrait deux fois le même message. */
+    for (var i = 0; i < ids.length; i++) {
+      if (ids[i] === id) { return }
+    }
+    ids.push(id)
+    meteobelgiqueirmSetActionIds(ids)
+  })
+}
+
+function meteobelgiqueirmDropAction(_id) {
+  var ids = meteobelgiqueirmActionIds()
+  var kept = []
+  for (var i = 0; i < ids.length; i++) {
+    if (ids[i] !== String(_id)) { kept.push(ids[i]) }
+  }
+  meteobelgiqueirmSetActionIds(kept)
+}
+
+function meteobelgiqueirmTestAlert() {
+  var id = document.querySelector('.eqLogicAttr[data-l1key="id"]')
+  if (id === null || id.value === '') {
+    jeedomUtils.showAlert({ message: '{{Enregistrez la commune avant de tester l\'alerte.}}', level: 'warning' })
+    return
+  }
+  if (meteobelgiqueirmActionIds().length === 0) {
+    jeedomUtils.showAlert({ message: '{{Ajoutez au moins une action avant de tester.}}', level: 'warning' })
+    return
+  }
+  /* L'essai part du serveur avec la configuration ENREGISTRÉE : une action
+     ajoutée mais non sauvegardée ne serait pas prise en compte, et le dire
+     évite de croire à une panne. */
+  meteobelgiqueirmAjax('testAlert', { id: id.value }, function (result) {
+    jeedomUtils.showAlert({
+      message: '{{Message d\'essai envoyé à}} ' + result.result + ' {{action(s).}}',
+      level: 'success'
+    })
+  })
+}
+
 /* ============================================================== PRÉVISIONS */
 
 function meteobelgiqueirmClear() {
@@ -311,6 +447,7 @@ function printEqLogic(_eqLogic) {
   meteobelgiqueirmClear()
   meteobelgiqueirmStatus('', '')
   meteobelgiqueirmShowCommune()
+  meteobelgiqueirmShowActions()
 
   if (isset(_eqLogic.id) && _eqLogic.id !== '') {
     meteobelgiqueirmLoad(_eqLogic.id)
@@ -385,6 +522,22 @@ meteobelgiqueirmContainer.addEventListener('click', function (_event) {
   if (target.closest('#bt_meteobelgiqueirmRefresh') !== null) {
     _event.preventDefault()
     meteobelgiqueirmRefresh()
+    return
+  }
+  if (target.closest('#bt_meteobelgiqueirmAddAction') !== null) {
+    _event.preventDefault()
+    meteobelgiqueirmAddAction()
+    return
+  }
+  if (target.closest('#bt_meteobelgiqueirmTestAlert') !== null) {
+    _event.preventDefault()
+    meteobelgiqueirmTestAlert()
+    return
+  }
+  var drop = target.closest('.meteobelgiqueirmDropAction')
+  if (drop !== null) {
+    _event.preventDefault()
+    meteobelgiqueirmDropAction(drop.getAttribute('data-cmd-id'))
     return
   }
   if (target.closest('#bt_meteobelgiqueirmHideHidden') !== null) {

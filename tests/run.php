@@ -319,6 +319,123 @@ foreach ($fixtures as $file) {
     }
 }
 
+/* ================================================================ ALERTES */
+section('Notification des alertes');
+
+/*
+ * Les réglages doivent exister avant le premier affichage du formulaire : un
+ * menu déroulant sans valeur se présente sur sa première entrée — « Jamais » —
+ * et le premier enregistrement couperait les notifications sans que personne ne
+ * l'ait demandé.
+ */
+$neuf = new meteobelgiqueirm();
+$neuf->preSave();
+check('le seuil par défaut est l\'orange', (int) $neuf->getConfiguration('alert_threshold'), 2);
+check('un gabarit de message est fourni',
+    strpos($neuf->getConfiguration('alert_message'), '#niveau#') !== false, true);
+check('la notification de fin est muette par défaut',
+    (int) $neuf->getConfiguration('alert_on_end'), 0);
+
+/* Un équipement dédié, configuré comme le ferait l'utilisateur. */
+$alerted = new meteobelgiqueirm();
+$alerted->configuration = array(
+    'ins' => '55040',
+    'alert_threshold' => 2,      // à partir de l'orange
+    'alert_cmds' => '101,102',   // deux actions
+);
+
+function alertCycle($_eq, $_warnings, $_now) {
+    cmd::$sent = array();
+    $m = new ReflectionMethod('meteobelgiqueirm', 'checkAlerts');
+    $m->setAccessible(true);
+    $m->invoke($_eq, array('warnings' => $_warnings, 'city' => 'Soignies'), $_now);
+    return cmd::$sent;
+}
+
+$t = time();
+$orage = array('id' => 3, 'slug' => 'thunder', 'name' => 'Orage', 'level' => 2,
+               'text' => 'Orages violents', 'from' => $t - 600, 'to' => $t + 21600);
+$vent  = array('id' => 0, 'slug' => 'wind', 'name' => 'Vent', 'level' => 1,
+               'text' => 'Rafales', 'from' => $t - 600, 'to' => $t + 10800);
+
+/* Premier passage : l'orange déclenche, sur les deux actions configurées. */
+$sent = alertCycle($alerted, array($orage), $t);
+check('une alerte orange déclenche', count($sent), 2);
+check('le message nomme le phénomène',
+    strpos($sent[0]['message'], 'Orage') !== false, true);
+check('le message nomme la commune',
+    strpos($sent[0]['message'], 'Soignies') !== false, true);
+check('le titre est renseigné', $sent[0]['title'] !== '', true);
+
+/* LE test : la même alerte, dix minutes plus tard, ne doit plus rien envoyer.
+ * Sans cela, six heures d'orange produiraient trente-six notifications. */
+$sent = alertCycle($alerted, array($orage), $t + 600);
+check('la même alerte ne se répète pas', count($sent), 0);
+
+/* L'IRM prolonge très souvent une alerte en cours : la fin change, le danger
+ * non. Cela ne doit pas renotifier. */
+$prolonge = $orage;
+$prolonge['to'] = $t + 43200;
+$sent = alertCycle($alerted, array($prolonge), $t + 1200);
+check('une échéance prolongée ne renotifie pas', count($sent), 0);
+
+/* Une alerte jaune qui s'ajoute reste sous le seuil : silence. */
+$sent = alertCycle($alerted, array($prolonge, $vent), $t + 1800);
+check('une alerte sous le seuil ne déclenche pas', count($sent), 0);
+
+/* Mais dès que quelque chose franchit le seuil, le message annonce TOUT ce qui
+ * est en cours : un orage orange avec du vent jaune, ce n'est pas la même
+ * soirée qu'un orage seul — il faut savoir qu'il y a aussi tout à rentrer. */
+$pluie = array('id' => 1, 'slug' => 'rain', 'name' => 'Pluie', 'level' => 2,
+               'text' => 'Fortes pluies', 'from' => $t, 'to' => $t + 7200);
+$sent = alertCycle($alerted, array($prolonge, $vent, $pluie), $t + 2400);
+check('une nouvelle alerte au seuil déclenche', count($sent), 2);
+check('le message cite aussi le vent resté sous le seuil',
+    strpos($sent[0]['message'], 'Vent') !== false, true);
+
+/* Aggravation : l'orange passe au rouge, il faut reprévenir. */
+$rouge = $prolonge;
+$rouge['level'] = 3;
+$sent = alertCycle($alerted, array($rouge), $t + 3000);
+check('une aggravation renotifie', count($sent), 2);
+check('le message dit rouge', strpos($sent[0]['message'], 'rouge') !== false, true);
+
+/* Retour au calme relatif : surtout pas de notification. Une bonne nouvelle
+ * annoncée comme un incident reste un incident. */
+$redescendu = $rouge;
+$redescendu['level'] = 2;
+$sent = alertCycle($alerted, array($redescendu), $t + 3600);
+check('une accalmie ne notifie pas', count($sent), 0);
+
+/* Fin d'alerte : silencieuse par défaut. */
+$sent = alertCycle($alerted, array(), $t + 4200);
+check('la fin est silencieuse par défaut', count($sent), 0);
+
+/* Un nouvel épisode du même type, plus tard, doit de nouveau prévenir. */
+$sent = alertCycle($alerted, array($orage), $t + 4800);
+check('un nouvel épisode prévient à nouveau', count($sent), 2);
+
+/* Option « prévenir à la fin ». */
+$alerted->configuration['alert_on_end'] = 1;
+$sent = alertCycle($alerted, array(), $t + 5400);
+check('la fin notifie quand l\'option est active', count($sent), 2);
+check('le message de fin le dit',
+    strpos($sent[0]['message'], 'Fin de vigilance') !== false, true);
+
+/* Seuil à zéro : le mécanisme est désactivé, même en vigilance rouge. */
+$muet = new meteobelgiqueirm();
+$muet->configuration = array('ins' => '55040', 'alert_threshold' => 0, 'alert_cmds' => '101');
+$sent = alertCycle($muet, array($rouge), $t);
+check('le seuil « jamais » désactive tout', count($sent), 0);
+
+/* Aucune action choisie : rien ne part, et le journal le dit. */
+$sansAction = new meteobelgiqueirm();
+$sansAction->configuration = array('ins' => '55040', 'alert_threshold' => 2, 'alert_cmds' => '');
+log::$lines = array();
+$sent = alertCycle($sansAction, array($orage), $t);
+check('sans action configurée, rien n\'est envoyé', count($sent), 0);
+check('et le journal le signale', count(log::$lines) > 0, true);
+
 /* ========================================================== BANDE HORAIRE */
 section('Bande heure par heure');
 
@@ -391,6 +508,30 @@ printf("  ok    %-52s %d caractères\n", 'taille de la charge de la tuile', strl
 $passed++;
 check('la tuile tient sous la limite du coeur', strlen($resume) < 3096, true);
 check('la tuile est un JSON valide', json_decode($resume, true) !== null, true);
+
+/* ==================================================== NOMS DES COMMANDES */
+section('Noms des commandes');
+
+/*
+ * cmd::setName() passe par cleanComponanteName(), qui retire les apostrophes
+ * sans le dire : « Niveau d'avertissement » arrive en base sous la forme
+ * « Niveau davertissement ». Le nom se lit alors comme une faute de frappe, et
+ * rien dans le code ne le laisse deviner.
+ */
+$classSource = file_get_contents(__DIR__ . '/../core/class/meteobelgiqueirm.class.php');
+preg_match_all("/addCmdIfMissing\(\s*'[a-z_0-9]+'\s*,\s*'((?:[^'\\\\]|\\\\.)*)'/", $classSource, $names);
+
+$withApostrophe = array();
+foreach ($names[1] as $name) {
+    if (strpos($name, "\\'") !== false) {
+        $withApostrophe[] = $name;
+    }
+}
+check('aucun nom de commande ne porte d\'apostrophe', count($withApostrophe), 0);
+if (!empty($withApostrophe)) {
+    foreach ($withApostrophe as $name) { echo '        -> ' . $name . "\n"; }
+}
+check('des commandes sont bien déclarées', count($names[1]) > 20, true);
 
 /* ============================================================== GABARITS */
 section('Gabarits de widget');

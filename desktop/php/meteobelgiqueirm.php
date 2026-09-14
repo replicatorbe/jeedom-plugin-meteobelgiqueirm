@@ -183,6 +183,72 @@ $eqLogics = eqLogic::byType($plugin->getId());
 						</fieldset>
 					</form>
 				</div>
+
+				<div class="col-lg-12">
+					<form class="form-horizontal">
+						<fieldset>
+							<legend><i class="fas fa-bell"></i> {{Être prévenu en cas de vigilance}}</legend>
+
+							<div class="form-group">
+								<label class="col-sm-2 control-label">{{À partir de}}</label>
+								<div class="col-sm-3">
+									<select class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="alert_threshold">
+										<option value="0">{{Jamais — ne rien envoyer}}</option>
+										<option value="1">{{Vigilance jaune}}</option>
+										<option value="2">{{Vigilance orange}}</option>
+										<option value="3">{{Vigilance rouge}}</option>
+									</select>
+								</div>
+								<div class="col-sm-7">
+									<span class="help-block" style="margin:0;">{{L'orange par défaut. En Belgique le jaune se déclenche pour du brouillard ou soixante kilomètres-heure de vent, plusieurs fois par mois : une notification qui sonne trop souvent finit par être coupée, et ne sert plus le jour où elle compte.}}</span>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="col-sm-2 control-label">{{Actions à exécuter}}</label>
+								<div class="col-sm-5">
+									<input type="hidden" class="eqLogicAttr" data-l1key="configuration" data-l2key="alert_cmds">
+									<div id="div_meteobelgiqueirmActions"></div>
+									<a class="btn btn-default btn-sm" id="bt_meteobelgiqueirmAddAction"><i class="fas fa-plus"></i> {{Ajouter une action}}</a>
+									<a class="btn btn-default btn-sm" id="bt_meteobelgiqueirmTestAlert"><i class="fas fa-bell"></i> {{Tester}}</a>
+								</div>
+								<div class="col-sm-5">
+									<span class="help-block" style="margin:0;">{{Toute commande d'action de Jeedom : une notification, une synthèse vocale, un scénario, une lampe. Le bouton « Tester » envoie un message d'essai immédiatement — c'est le seul moyen de vérifier votre configuration sans attendre la prochaine tempête.}}</span>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="col-sm-2 control-label">{{Message}}</label>
+								<div class="col-sm-5">
+									<input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="alert_message" placeholder="Vigilance #niveau# — #type# à #commune#, jusqu'au #fin#">
+								</div>
+								<div class="col-sm-5">
+									<span class="help-block" style="margin:0;">{{Balises disponibles : #commune#, #niveau#, #type#, #texte#, #debut#, #fin#. Les autres vigilances en cours sont ajoutées automatiquement à la suite — un orage orange accompagné d'un vent jaune, ce n'est pas la même soirée qu'un orage seul.}}</span>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="col-sm-2 control-label">{{Prévenir aussi}}</label>
+								<div class="col-sm-10">
+									<label class="checkbox-inline">
+										<input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="alert_on_end" value="1">{{à la fin de la vigilance}}
+									</label>
+									<label class="checkbox-inline">
+										<input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="alert_on_upcoming" value="1">{{pour les vigilances annoncées à l'avance}}
+									</label>
+									<span class="help-block" style="margin:4px 0 0 0;">{{L'IRM publie ses avertissements jusqu'à douze heures avant : la seconde option laisse le temps de rentrer les meubles de jardin, au prix d'un message de plus par épisode.}}</span>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="col-sm-2 control-label"></label>
+								<div class="col-sm-10">
+									<span class="help-block" style="margin:0;">{{Une même vigilance n'est annoncée qu'une fois, même si elle dure six heures et que le plugin la relit toutes les dix minutes. Vous êtes prévenu à nouveau seulement si elle s'aggrave, ou si un nouveau phénomène apparaît.}}</span>
+								</div>
+							</div>
+						</fieldset>
+					</form>
+				</div>
 			</div>
 
 			<!-- ========================= PRÉVISIONS ========================= -->

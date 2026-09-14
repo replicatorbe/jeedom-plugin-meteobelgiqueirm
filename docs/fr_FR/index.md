@@ -133,6 +133,63 @@ Si [Maison][Pluie prochainement] == 1
 > ne contient de durée relative : un « fin dans 3 h » changerait à chaque passage
 > du cron et redéclencherait tout, toutes les dix minutes.
 
+## Être prévenu automatiquement
+
+Le plugin peut exécuter lui-même des actions dès qu'une vigilance touche votre
+commune, sans écrire le moindre scénario. Cela se règle dans l'onglet
+*Équipement*, section **Être prévenu en cas de vigilance**.
+
+**À partir de quel niveau.** Jamais, jaune, **orange** (défaut) ou rouge. Le
+jaune belge se déclenche pour du brouillard ou soixante kilomètres-heure de vent,
+plusieurs fois par mois : une notification qui sonne trop souvent finit par être
+coupée, et ne sert plus le jour où elle compte.
+
+**Les actions.** Autant que vous voulez, choisies parmi toutes les commandes
+d'action de Jeedom : une notification sur votre téléphone, une synthèse vocale,
+un scénario, une lampe qui passe au rouge. Le bouton **Tester** envoie un message
+d'essai immédiatement — c'est le seul moyen de vérifier votre configuration sans
+attendre la prochaine tempête, et c'est là qu'on s'aperçoit qu'on avait oublié de
+sélectionner une commande.
+
+**Le message** est modifiable, avec des balises : `#commune#`, `#niveau#`,
+`#type#`, `#texte#`, `#debut#`, `#fin#`. Par défaut :
+
+> Vigilance orange — Orage à Soignies, jusqu'au 15/09 à 22:00
+> Également en cours : Vent (jaune)
+
+Les autres vigilances en cours sont ajoutées automatiquement, **y compris celles
+qui restent sous votre seuil**. Un orage orange accompagné d'un vent jaune, ce
+n'est pas la même soirée qu'un orage seul : il faut savoir qu'il y a aussi tout à
+rentrer dans le jardin.
+
+### La règle qui évite d'être harcelé
+
+L'IRM renvoie la même vigilance à chaque appel pendant toute sa durée. Six heures
+d'orange, relues toutes les dix minutes, cela ferait trente-six messages.
+
+Le plugin mémorise donc, **par type de phénomène**, le niveau déjà annoncé :
+
+| Ce qui arrive | Ce qui se passe |
+|---|---|
+| Un phénomène nouveau | Vous êtes prévenu |
+| Le niveau monte (jaune → orange) | Vous êtes prévenu |
+| Le même niveau continue | Silence |
+| L'IRM prolonge l'échéance | Silence — c'est fréquent, et le danger n'a pas changé |
+| Le niveau redescend | Silence — une bonne nouvelle annoncée comme un incident reste un incident |
+| La vigilance se termine | Silence, sauf si vous cochez l'option |
+| Le même phénomène revient plus tard | Vous êtes prévenu, c'est un nouvel épisode |
+
+Les horodatages sont délibérément ignorés dans cette comparaison : ce sont eux
+qui bougent, pas le danger.
+
+**Deux options**, décochées par défaut : prévenir *à la fin* de la vigilance, et
+prévenir *pour les vigilances annoncées à l'avance*. L'IRM publie jusqu'à douze
+heures avant : la seconde laisse le temps de rentrer les meubles de jardin, au
+prix d'un message de plus par épisode.
+
+Ce mécanisme est indépendant des commandes : `warning_level` continue de
+fonctionner pour vos scénarios, et les deux peuvent coexister.
+
 ## Quand l'IRM est indisponible
 
 Le plugin **n'efface jamais ce qu'il sait**. Les dernières valeurs connues

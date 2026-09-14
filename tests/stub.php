@@ -56,8 +56,23 @@ class message {
 class cmd {
     public $logicalId = '';
     public $value = '';
+    public $id = 0;
+    /* Journal des actions déclenchées : c'est lui qu'on interroge pour vérifier
+     * qu'une même alerte ne part pas deux fois. */
+    public static $sent = array();
     public function getLogicalId() { return $this->logicalId; }
-    public function execCmd() { return $this->value; }
+    public function execCmd($_options = array()) {
+        if (!empty($_options)) {
+            self::$sent[] = $_options;
+            return true;
+        }
+        return $this->value;
+    }
+    public static function byId($_id) {
+        $c = new self();
+        $c->id = $_id;
+        return $c;
+    }
     public static function byEqLogicIdCmdName($_id, $_name) { return null; }
 }
 
@@ -69,7 +84,12 @@ class eqLogic {
     public function getConfiguration($_key, $_default = '') {
         return isset($this->configuration[$_key]) ? $this->configuration[$_key] : $_default;
     }
+    public function setConfiguration($_key, $_value) {
+        $this->configuration[$_key] = $_value;
+        return $this;
+    }
     public function getCmd($_type, $_logicalId) { return null; }
+    public function getName() { return 'Commune'; }
     public function checkAndUpdateCmd($_logicalId, $_value, $_when = null) {
         $this->published[$_logicalId] = $_value;
     }

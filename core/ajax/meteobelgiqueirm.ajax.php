@@ -69,6 +69,24 @@ try {
         ajax::success($eqLogic->toAjax());
     }
 
+    /*
+     * Essai d'alerte. Il part avec la configuration ENREGISTRÉE : une action
+     * ajoutée mais non sauvegardée ne serait pas prise en compte.
+     */
+    if (init('action') == 'testAlert') {
+        unautorizedInDemo();
+
+        $eqLogic = eqLogic::byId(init('id'));
+        if (!is_object($eqLogic) || $eqLogic->getEqType_name() != 'meteobelgiqueirm') {
+            throw new Exception(__('Commune introuvable :', __FILE__) . ' ' . init('id'));
+        }
+        $sent = $eqLogic->testAlert();
+        if ($sent === 0) {
+            throw new Exception(__('Aucune action n\'a pu être exécutée. Vérifiez la liste, et enregistrez la commune si vous venez de la modifier.', __FILE__));
+        }
+        ajax::success($sent);
+    }
+
     throw new Exception(__('Aucune méthode correspondante à :', __FILE__) . ' ' . init('action'));
 
 /*
