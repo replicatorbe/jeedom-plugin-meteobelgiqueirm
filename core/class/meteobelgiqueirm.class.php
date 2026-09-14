@@ -37,13 +37,20 @@ class meteobelgiqueirm extends eqLogic {
     const API_SECRET = 'r9EnW374jkJ9acc';
 
     /*
-     * L'auteur de la bibliothèque amont recommande sept minutes. Les
-     * observations de l'IRM sont horodatées au pas de dix minutes et la
-     * séquence radar est décadaire : cron10 colle à la source, respecte la
-     * recommandation, et évite d'avoir à tester l'âge des données commune par
-     * commune.
+     * Durée de conservation de la dernière réponse connue.
+     *
+     * Ce n'est PAS un minuteur de fraîcheur : la fraîcheur est portée par
+     * fetched_at, par la commande data_age et par le timeout du coeur. C'est un
+     * magasin de secours, et il doit survivre à une panne longue — sinon le
+     * principe « une panne n'efface jamais l'acquis » est faux dès que l'IRM
+     * tombe plus longtemps que le TTL.
+     *
+     * Ce délai valait une demi-heure au départ, et ça se voyait : une coupure de
+     * trente-et-une minutes vidait la tuile au lieu d'afficher des valeurs
+     * vieillissantes. Deux jours laissent le temps de réparer une box éteinte
+     * pour le week-end ; au-delà, mieux vaut effectivement ne plus rien affirmer.
      */
-    const FORECAST_TTL = 1800;
+    const FORECAST_TTL = 172800;
 
     /*
      * plugin::cron10() dispose de dix minutes pour TOUS les plugins de cette
@@ -73,6 +80,19 @@ class meteobelgiqueirm extends eqLogic {
      * leur vraie date de lecture (voir publishCmd).
      */
     const TIMEOUT_MINUTES = 45;
+
+    /*
+     * Bande horaire de la tuile. Quatorze colonnes tiennent dans 300 px en
+     * repliant sur deux lignes ; au-delà l'affichage devient illisible et la
+     * charge JSON s'approche de la limite de 3096 caractères que le coeur
+     * impose à la valeur d'une commande.
+     *
+     * En dessous de six heures restantes — c'est-à-dire en soirée — la bande
+     * n'apprendrait plus rien : on déborde alors sur la nuit et le lendemain,
+     * en marquant le changement de jour.
+     */
+    const HOURS_MAX = 14;
+    const HOURS_MIN = 6;
 
     /*
      * Valeur d'une commande numérique quand l'information est inconnue. Zéro ne
@@ -536,11 +556,20 @@ class meteobelgiqueirm extends eqLogic {
             return;
         }
 
-        /* Un scénario qui appellerait « Rafraîchir » en boucle recompose depuis
-         * le cache sans toucher au réseau. */
+        /*
+         * Un scénario qui appellerait « Rafraîchir » en boucle recompose depuis
+         * le cache sans toucher au réseau.
+         *
+         * Mais seulement s'il y a quelque chose à recomposer : sans cette
+         * réserve, une commune qui n'a jamais réussi une lecture — ou dont le
+         * cache a expiré — ne peut plus jamais s'amorcer. Le bouton rend la
+         * main sans rien faire et sans rien dire, ce qui est le pire des deux
+         * mondes. Le garde-fou protège le service de l'IRM, il n'a pas à
+         * empêcher un premier relevé.
+         */
         if ($_force) {
             $last = (int) $this->getCache('lastForce', 0);
-            if ($last > 0 && (time() - $last) < self::FORCE_MIN_INTERVAL) {
+            if ($last > 0 && (time() - $last) < self::FORCE_MIN_INTERVAL && !empty($this->getForecast())) {
                 $this->refreshFromCache();
                 return;
             }
@@ -1273,6 +1302,7 @@ class meteobelgiqueirm extends eqLogic {
                 'start' => $_warning['next_start'],
             ),
             'days'      => $days,
+            'hours'     => $this->buildHours($_model, $_now),
             /* Le gabarit calcule l'âge lui-même à partir de cet instant : une
              * durée figée ici vieillirait mal entre deux passages du cron. */
             'fetched'   => $fetchedAt,
@@ -1280,6 +1310,56 @@ class meteobelgiqueirm extends eqLogic {
         );
 
         return json_encode($payload, JSON_UNESCAPED_UNICODE);
+    }
+
+    /*
+     * Les heures à venir, pour la bande de la tuile. « Va-t-il pleuvoir cet
+     * après-midi » est la question qu'on pose le plus souvent à un dashboard, et
+     * elle ne se lit ni sur la température du moment ni sur un maximum
+     * journalier.
+     */
+    private function buildHours($_model, $_now) {
+        $all = isset($_model['hourly']) ? $_model['hourly'] : array();
+        if (empty($all)) {
+            return array();
+        }
+
+        $today = date('Y-m-d', $_now);
+        $rest = array();
+        $future = array();
+
+        foreach ($all as $h) {
+            /* L'heure en cours est conservée : à 14 h 50, la colonne « 14 h »
+             * décrit encore le temps qu'il fait. */
+            if ($h['ts'] + 3600 <= $_now) {
+                continue;
+            }
+            $future[] = $h;
+            if (date('Y-m-d', $h['ts']) === $today) {
+                $rest[] = $h;
+            }
+        }
+
+        $picked = (count($rest) >= self::HOURS_MIN) ? $rest : $future;
+        $picked = array_slice($picked, 0, self::HOURS_MAX);
+
+        $out = array();
+        $previousDay = $today;
+        foreach ($picked as $h) {
+            $day = date('Y-m-d', $h['ts']);
+            $ww = self::describeWw($h['ww'], isset($h['day_night']) ? $h['day_night'] : 'd');
+            /* Clés volontairement courtes : quatorze heures décrites au long
+             * feraient à elles seules la moitié du budget de la commande. */
+            $out[] = array(
+                'h' => (int) date('G', $h['ts']),
+                'i' => $ww[2],
+                't' => isset($h['temp']) && $h['temp'] !== null ? (int) round($h['temp']) : null,
+                'r' => isset($h['rain_chance']) && $h['rain_chance'] !== null ? (int) round($h['rain_chance']) : null,
+                'n' => ($day !== $previousDay) ? 1 : 0,
+            );
+            $previousDay = $day;
+        }
+        return $out;
     }
 
     /* ================================================================ CACHE */

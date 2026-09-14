@@ -319,6 +319,57 @@ foreach ($fixtures as $file) {
     }
 }
 
+/* ========================================================== BANDE HORAIRE */
+section('Bande heure par heure');
+
+/* Construite depuis une réponse réelle : c'est la seule façon de mesurer la
+ * charge que la commande devra porter. */
+$raw = json_decode(file_get_contents(__DIR__ . '/fixtures/forecast_25121.json'), true);
+$model = invoke($eq, 'buildModel', array($raw));
+$hours = invoke($eq, 'buildHours', array($model, time()));
+
+check('la bande n\'est pas vide', count($hours) > 0, true);
+check('elle ne dépasse pas la largeur tenable', count($hours) <= 14, true);
+
+$fields = true;
+$chronological = true;
+$previous = null;
+foreach ($hours as $h) {
+    if (!array_key_exists('h', $h) || !array_key_exists('i', $h)
+        || !array_key_exists('t', $h) || !array_key_exists('r', $h)
+        || !array_key_exists('n', $h)) { $fields = false; }
+    if ($previous !== null && $h['n'] === 0 && $h['h'] !== ($previous + 1) % 24) { $chronological = false; }
+    $previous = $h['h'];
+}
+check('chaque colonne porte ses cinq champs', $fields, true);
+check('les heures se suivent', $chronological, true);
+/* Le changement de jour doit être marqué, sinon « 23 » suivi de « 0 » se lit
+ * comme une erreur d'affichage. */
+$marked = true;
+$previous = null;
+foreach ($hours as $h) {
+    if ($previous !== null && $h['h'] < $previous && $h['n'] !== 1) { $marked = false; }
+    $previous = $h['h'];
+}
+check('le passage à minuit est marqué', $marked, true);
+
+/* La première colonne est l'heure en cours, pas la suivante : à 14 h 50, la
+ * colonne « 14 » décrit encore le temps qu'il fait. */
+check('la bande commence à l\'heure courante',
+    $hours[0]['h'] === (int) date('G'), true);
+
+/* Le coeur tronque la valeur d'une commande à 3096 caractères. Une tuile
+ * tronquée, c'est un JSON invalide et un widget muet. */
+$warning = invoke($eq, 'warningsAt', array($model, time()));
+$nowcast = invoke($eq, 'nowcastAt', array($model, time()));
+$ww = meteobelgiqueirm::describeWw($model['obs']['ww'], $model['obs']['day_night']);
+$resume = invoke($eq, 'buildResume', array($model, $warning, $nowcast, $ww, time()));
+
+printf("  ok    %-52s %d caractères\n", 'taille de la charge de la tuile', strlen($resume));
+$passed++;
+check('la tuile tient sous la limite du coeur', strlen($resume) < 3096, true);
+check('la tuile est un JSON valide', json_decode($resume, true) !== null, true);
+
 /* ============================================================== GABARITS */
 section('Gabarits de widget');
 

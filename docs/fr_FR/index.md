@@ -156,9 +156,20 @@ bandeau d'avertissement s'il y en a un, température et temps, pluie à courte
 échéance, minimum et maximum du jour, les trois prochains jours, et l'âge des
 données.
 
-Trois options se règlent dans la configuration du widget : `days`, `rain` et
-`range` à `0` masquent respectivement la bande des trois jours, la ligne de pluie
-et les températures extrêmes.
+Entre les températures du jour et les trois jours à venir, une **bande heure par
+heure** répond à la question la plus courante devant un dashboard : va-t-il
+pleuvoir cet après-midi ? Chaque colonne porte l'heure, le temps, la température
+et une barre dont la hauteur est le risque de pluie — la silhouette de la bande
+se lit d'un coup d'œil, là où quatorze pourcentages ne se lisent pas.
+
+Elle couvre les heures restantes de la journée. En soirée, quand il en reste
+moins de six, elle déborde sur la nuit et le lendemain matin plutôt que de se
+réduire à deux colonnes inutiles ; un trait vertical marque alors le passage à
+minuit.
+
+Quatre options se règlent dans la configuration du widget : `days`, `rain`,
+`range` et `hours` à `0` masquent respectivement la bande des trois jours, la
+ligne de pluie, les températures extrêmes et la bande heure par heure.
 
 Les autres commandes existent mais sont masquées : elles servent aux scénarios et
 aux graphiques. Elles s'affichent une par une depuis l'onglet *Commandes*.

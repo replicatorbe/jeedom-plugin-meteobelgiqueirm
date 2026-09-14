@@ -48,6 +48,13 @@ Forecast: `temperature_1_min` through `temperature_7_min` and the matching
 `condition_id_1..4`, `rain_chance_1..3`, the hourly `*_h1..h3`, and
 `bulletin_0` / `bulletin_1` carrying RMI's written bulletin.
 
+The tile also carries an **hour-by-hour band** covering the rest of the day —
+hour, weather, temperature, and a bar whose height is the chance of rain. In the
+evening, when fewer than six hours remain, it spills over into the night and the
+next morning rather than shrinking to two useless columns; a vertical rule marks
+midnight. Widget options `days`, `rain`, `range` and `hours` set to `0` hide the
+three-day strip, the rain line, the day's extremes and the hourly band.
+
 **Humidity is not provided**: it does not exist anywhere in RMI's data, and a
 command showing 0% would be a lie.
 
