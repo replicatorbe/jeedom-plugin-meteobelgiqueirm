@@ -71,7 +71,7 @@ $eqLogics = eqLogic::byType($plugin->getId());
 			<li role="presentation"><a href="#" class="eqLogicAction" aria-controls="home" role="tab" data-toggle="tab" data-action="returnToThumbnailDisplay"><i class="fas fa-arrow-circle-left"></i></a></li>
 			<li role="presentation" class="active"><a href="#eqlogictab" aria-controls="home" role="tab" data-toggle="tab"><i class="fas fa-tachometer-alt"></i><span class="hidden-xs"> {{Équipement}}</span></a></li>
 			<li role="presentation"><a href="#forecasttab" aria-controls="home" role="tab" data-toggle="tab"><i class="fas fa-cloud-sun"></i><span class="hidden-xs"> {{Prévisions}}</span></a></li>
-			<li role="presentation"><a href="#warningtab" aria-controls="home" role="tab" data-toggle="tab"><i class="fas fa-triangle-exclamation"></i><span class="hidden-xs"> {{Avertissements}}</span></a></li>
+			<li role="presentation"><a href="#warningtab" aria-controls="home" role="tab" data-toggle="tab"><i class="fas fa-exclamation-triangle"></i><span class="hidden-xs"> {{Avertissements}}</span></a></li>
 			<li role="presentation"><a href="#commandtab" aria-controls="home" role="tab" data-toggle="tab"><i class="fas fa-list"></i><span class="hidden-xs"> {{Commandes}}</span></a></li>
 		</ul>
 
@@ -134,7 +134,7 @@ $eqLogics = eqLogic::byType($plugin->getId());
 				<div class="col-lg-6">
 					<form class="form-horizontal">
 						<fieldset>
-							<legend><i class="fas fa-location-dot"></i> {{Commune}}</legend>
+							<legend><i class="fas fa-map-marker-alt"></i> {{Commune}}</legend>
 
 							<!--
 								Le code INS est la seule valeur fonctionnelle ; le libellé
@@ -150,7 +150,7 @@ $eqLogics = eqLogic::byType($plugin->getId());
 									<div class="input-group">
 										<input type="text" class="form-control roundedLeft" id="in_meteobelgiqueirmSearch" placeholder="{{Namur, Elsene, Bruges…}}">
 										<span class="input-group-btn">
-											<a class="btn btn-default roundedRight" id="bt_meteobelgiqueirmSearch"><i class="fas fa-magnifying-glass"></i></a>
+											<a class="btn btn-default roundedRight" id="bt_meteobelgiqueirmSearch"><i class="fas fa-search"></i></a>
 										</span>
 									</div>
 								</div>
@@ -176,7 +176,7 @@ $eqLogics = eqLogic::byType($plugin->getId());
 							<div class="form-group">
 								<label class="col-sm-3 control-label"></label>
 								<div class="col-sm-9">
-									<a class="btn btn-default btn-sm" id="bt_meteobelgiqueirmRefresh"><i class="fas fa-rotate"></i> {{Relever maintenant}}</a>
+									<a class="btn btn-default btn-sm" id="bt_meteobelgiqueirmRefresh"><i class="fas fa-sync"></i> {{Relever maintenant}}</a>
 									<span id="span_meteobelgiqueirmStatus" style="margin-left:10px;"></span>
 								</div>
 							</div>
@@ -191,7 +191,7 @@ $eqLogics = eqLogic::byType($plugin->getId());
 				<div class="col-xs-12">
 					<div class="alert alert-info" id="div_meteobelgiqueirmFetched" style="margin-bottom:10px;">{{Chargement…}}</div>
 
-					<legend><i class="fas fa-calendar-days"></i> {{Les prochains jours}}</legend>
+					<legend><i class="fas fa-calendar-alt"></i> {{Les prochains jours}}</legend>
 					<table class="table table-condensed table-bordered">
 						<thead>
 							<tr>

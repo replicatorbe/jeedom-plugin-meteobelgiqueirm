@@ -82,16 +82,24 @@ class meteobelgiqueirm extends eqLogic {
     const TIMEOUT_MINUTES = 45;
 
     /*
-     * Bande horaire de la tuile. Quatorze colonnes tiennent dans 300 px en
-     * repliant sur deux lignes ; au-delà l'affichage devient illisible et la
-     * charge JSON s'approche de la limite de 3096 caractères que le coeur
-     * impose à la valeur d'une commande.
+     * Bande horaire de la tuile.
+     *
+     * Quatorze colonnes tenaient dans 300 px, mais à vingt-et-un pixels chacune
+     * l'icône tombait sous les dix pixels : affichée, et pourtant invisible. Il
+     * en tient huit confortablement, à trente-sept pixels.
+     *
+     * On couvre donc la même amplitude avec moins de colonnes, en regroupant
+     * les heures. Regrouper ne doit pas faire disparaître une averse : chaque
+     * colonne porte le risque de pluie MAXIMUM de l'intervalle qu'elle
+     * représente, jamais celui de sa seule première heure. La température, elle,
+     * reste celle de l'heure affichée.
      *
      * En dessous de six heures restantes — c'est-à-dire en soirée — la bande
      * n'apprendrait plus rien : on déborde alors sur la nuit et le lendemain,
      * en marquant le changement de jour.
      */
-    const HOURS_MAX = 14;
+    const HOURS_COLUMNS = 8;
+    const HOURS_SPAN = 16;
     const HOURS_MIN = 6;
 
     /*
@@ -199,7 +207,7 @@ class meteobelgiqueirm extends eqLogic {
      */
     public static function templateWidget() {
         $icons = array(
-            '#_icon_on_#'  => "<i class='icon_red fas fa-triangle-exclamation'></i>",
+            '#_icon_on_#'  => "<i class='icon_red fas fa-exclamation-triangle'></i>",
             '#_icon_off_#' => "<i class='icon_green fas fa-check'></i>",
         );
         return array('info' => array('binary' => array(
@@ -384,7 +392,7 @@ class meteobelgiqueirm extends eqLogic {
         $this->addCmdIfMissing('day_night', 'Jour ou nuit', 'info', 'string', array('order' => $order++));
         $this->addCmdIfMissing('pressure', 'Pression', 'info', 'numeric', array(
             'order' => $order++, 'unite' => 'hPa', 'isHistorized' => 1,
-            'generic' => 'WEATHER_PRESSURE', 'icon' => 'fas fa-gauge',
+            'generic' => 'WEATHER_PRESSURE', 'icon' => 'fas fa-tachometer-alt',
         ));
         $this->addCmdIfMissing('wind_speed', 'Vent', 'info', 'numeric', array(
             'order' => $order++, 'unite' => 'km/h', 'isHistorized' => 1,
@@ -451,7 +459,7 @@ class meteobelgiqueirm extends eqLogic {
             'order' => $order++, 'template' => 'warning',
         ));
         $level = $this->addCmdIfMissing('warning_level', 'Niveau d\'avertissement', 'info', 'numeric', array(
-            'order' => $order++, 'isHistorized' => 1, 'icon' => 'fas fa-triangle-exclamation',
+            'order' => $order++, 'isHistorized' => 1, 'icon' => 'fas fa-exclamation-triangle',
         ));
         /* Ces seuils ne colorent pas la tuile — le gabarit s'en charge — mais ils
          * alimentent gratuitement l'icône d'alerte de l'équipement et la page
@@ -518,7 +526,7 @@ class meteobelgiqueirm extends eqLogic {
 
         /* --- Action --- */
         $this->addCmdIfMissing('refresh', 'Rafraîchir', 'action', 'other', array(
-            'order' => $order++, 'icon' => 'fas fa-rotate',
+            'order' => $order++, 'icon' => 'fas fa-sync',
         ));
     }
 
@@ -1341,20 +1349,44 @@ class meteobelgiqueirm extends eqLogic {
         }
 
         $picked = (count($rest) >= self::HOURS_MIN) ? $rest : $future;
-        $picked = array_slice($picked, 0, self::HOURS_MAX);
+        $picked = array_slice($picked, 0, self::HOURS_SPAN);
+        if (empty($picked)) {
+            return array();
+        }
+
+        /* Une colonne par heure tant que ça tient, sinon on regroupe. */
+        $step = (int) ceil(count($picked) / self::HOURS_COLUMNS);
+        if ($step < 1) {
+            $step = 1;
+        }
 
         $out = array();
         $previousDay = $today;
-        foreach ($picked as $h) {
+        for ($i = 0; $i < count($picked); $i += $step) {
+            $h = $picked[$i];
             $day = date('Y-m-d', $h['ts']);
             $ww = self::describeWw($h['ww'], isset($h['day_night']) ? $h['day_night'] : 'd');
-            /* Clés volontairement courtes : quatorze heures décrites au long
+
+            /*
+             * Le risque de pluie est celui du pire moment de l'intervalle : une
+             * averse à 15 h ne doit pas disparaître parce que la colonne porte
+             * l'étiquette « 14 h ».
+             */
+            $risk = null;
+            for ($k = $i; $k < min($i + $step, count($picked)); $k++) {
+                $r = isset($picked[$k]['rain_chance']) ? $picked[$k]['rain_chance'] : null;
+                if ($r !== null && ($risk === null || $r > $risk)) {
+                    $risk = $r;
+                }
+            }
+
+            /* Clés volontairement courtes : décrites au long, seize heures
              * feraient à elles seules la moitié du budget de la commande. */
             $out[] = array(
                 'h' => (int) date('G', $h['ts']),
                 'i' => $ww[2],
                 't' => isset($h['temp']) && $h['temp'] !== null ? (int) round($h['temp']) : null,
-                'r' => isset($h['rain_chance']) && $h['rain_chance'] !== null ? (int) round($h['rain_chance']) : null,
+                'r' => $risk === null ? null : (int) round($risk),
                 'n' => ($day !== $previousDay) ? 1 : 0,
             );
             $previousDay = $day;

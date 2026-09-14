@@ -329,7 +329,7 @@ $model = invoke($eq, 'buildModel', array($raw));
 $hours = invoke($eq, 'buildHours', array($model, time()));
 
 check('la bande n\'est pas vide', count($hours) > 0, true);
-check('elle ne dépasse pas la largeur tenable', count($hours) <= 14, true);
+check('elle ne dépasse pas la largeur tenable', count($hours) <= 8, true);
 
 $fields = true;
 $chronological = true;
@@ -338,7 +338,7 @@ foreach ($hours as $h) {
     if (!array_key_exists('h', $h) || !array_key_exists('i', $h)
         || !array_key_exists('t', $h) || !array_key_exists('r', $h)
         || !array_key_exists('n', $h)) { $fields = false; }
-    if ($previous !== null && $h['n'] === 0 && $h['h'] !== ($previous + 1) % 24) { $chronological = false; }
+    if ($previous !== null && $h['n'] === 0 && $h['h'] <= $previous) { $chronological = false; }
     $previous = $h['h'];
 }
 check('chaque colonne porte ses cinq champs', $fields, true);
@@ -357,6 +357,28 @@ check('le passage à minuit est marqué', $marked, true);
  * colonne « 14 » décrit encore le temps qu'il fait. */
 check('la bande commence à l\'heure courante',
     $hours[0]['h'] === (int) date('G'), true);
+
+/*
+ * Regroupement : quand la bande couvre plus d'heures qu'elle n'a de colonnes,
+ * chaque colonne doit porter le risque de pluie du PIRE moment de son
+ * intervalle. Une averse à 15 h qui disparaîtrait parce que la colonne
+ * s'appelle « 14 h » serait pire que pas de bande du tout.
+ */
+$base = time() - 600;
+$fake = array('hourly' => array());
+for ($i = 0; $i < 16; $i++) {
+    $fake['hourly'][] = array(
+        'ts' => $base + $i * 3600, 'temp' => 15.0, 'ww' => 0, 'day_night' => 'd',
+        /* Une seule heure pluvieuse, volontairement en position impaire pour
+         * qu'un échantillonnage naïf la manque. */
+        'rain_chance' => ($i === 5) ? 90.0 : 0.0,
+    );
+}
+$grouped = invoke($eq, 'buildHours', array($fake, $base));
+check('le regroupement tient dans huit colonnes', count($grouped) <= 8, true);
+$maxRisk = 0;
+foreach ($grouped as $g) { if ($g['r'] > $maxRisk) { $maxRisk = $g['r']; } }
+check('l\'averse isolée survit au regroupement', $maxRisk, 90);
 
 /* Le coeur tronque la valeur d'une commande à 3096 caractères. Une tuile
  * tronquée, c'est un JSON invalide et un widget muet. */

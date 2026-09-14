@@ -160,7 +160,15 @@ Entre les températures du jour et les trois jours à venir, une **bande heure p
 heure** répond à la question la plus courante devant un dashboard : va-t-il
 pleuvoir cet après-midi ? Chaque colonne porte l'heure, le temps, la température
 et une barre dont la hauteur est le risque de pluie — la silhouette de la bande
-se lit d'un coup d'œil, là où quatorze pourcentages ne se lisent pas.
+se lit d'un coup d'œil, là où une rangée de pourcentages ne se lit pas.
+
+Elle compte huit colonnes et couvre jusqu'à seize heures : au-delà de huit
+colonnes dans la largeur d'une tuile, l'icône tombe sous les dix pixels et
+devient illisible. Quand l'amplitude dépasse le nombre de colonnes, les heures
+sont regroupées deux par deux — mais **chaque colonne porte alors le risque de
+pluie du pire moment de son intervalle**, jamais celui de sa seule première
+heure : une averse à 15 h ne doit pas disparaître parce que la colonne s'appelle
+« 14 h ».
 
 Elle couvre les heures restantes de la journée. En soirée, quand il en reste
 moins de six, elle déborde sur la nuit et le lendemain matin plutôt que de se

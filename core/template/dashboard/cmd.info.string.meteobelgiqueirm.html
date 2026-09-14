@@ -58,9 +58,12 @@
              défiler : un widget dans lequel il faut faire glisser du doigt pour
              voir l'après-midi ne répond pas à la question qu'on lui pose. */
           '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHours{display:flex;flex-wrap:wrap;justify-content:center;gap:1px;width:100%;margin-top:4px}',
-          '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHour{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:26px;flex:1 1 26px;max-width:34px;font-size:.66em;line-height:1.2;color:var(--txt-color)}',
+          '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHour{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:30px;flex:1 1 30px;max-width:46px;font-size:.72em;line-height:1.2;color:var(--txt-color)}',
           '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHourTime{opacity:.7}',
-          '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHour > i{font-size:1.05em;opacity:.9}',
+          /* L'icône était à 1,05em d'un texte déjà réduit, soit neuf pixels :
+             affichée, et pourtant invisible. Elle est maintenant dimensionnée
+             pour être lue, pas seulement pour être présente. */
+          '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHour > i{font-size:1.55em;line-height:1;opacity:.95}',
           '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHourTemp{font-weight:600}',
           /* Le changement de jour est marqué par un trait : sans lui, « 23 »
              suivi de « 0 » se lit comme une erreur. */
@@ -68,7 +71,7 @@
           /* La hauteur de la barre porte le risque de pluie. Le chiffre serait
              illisible à cette taille ; la silhouette de la bande, elle, se lit
              d\'un coup d\'oeil. */
-          '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHourBar{display:flex;align-items:flex-end;width:70%;height:12px;border-radius:1px;background:var(--btnEq-default-color)}',
+          '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHourBar{display:flex;align-items:flex-end;width:62%;height:14px;border-radius:2px;background:var(--btnEq-default-color)}',
           '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHourBar > span{display:block;width:100%;border-radius:1px;background:var(--al-info-color)}',
           '.cmd-widget[data-template="meteobelgiqueirm"] .mbiDays{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;width:100%;margin-top:3px}',
           '.cmd-widget[data-template="meteobelgiqueirm"] .mbiDay{display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 5px;font-size:.76em;line-height:1.25;border-radius:var(--border-radius);background:var(--btnEq-default-color);color:var(--txt-color)}',
