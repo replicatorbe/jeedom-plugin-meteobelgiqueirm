@@ -162,6 +162,12 @@ pleuvoir cet après-midi ? Chaque colonne porte l'heure, le temps, la températu
 et une barre dont la hauteur est le risque de pluie — la silhouette de la bande
 se lit d'un coup d'œil, là où une rangée de pourcentages ne se lit pas.
 
+La barre de pluie ne s'affiche que lorsqu'il y a de la pluie à annoncer : quand
+aucune heure ne dépasse 5 % de risque, la rangée disparaît entièrement plutôt que
+d'aligner des rectangles gris vides. Au-delà d'une chance sur trois, le
+pourcentage s'écrit sous la barre — c'est le moment où l'on décide de sortir ou
+non, et un chiffre s'y lit mieux qu'une hauteur estimée à l'œil.
+
 Elle compte huit colonnes et couvre jusqu'à seize heures : au-delà de huit
 colonnes dans la largeur d'une tuile, l'icône tombe sous les dix pixels et
 devient illisible. Quand l'amplitude dépasse le nombre de colonnes, les heures

@@ -73,6 +73,7 @@
              d\'un coup d\'oeil. */
           '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHourBar{display:flex;align-items:flex-end;width:62%;height:14px;border-radius:2px;background:var(--btnEq-default-color)}',
           '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHourBar > span{display:block;width:100%;border-radius:1px;background:var(--al-info-color)}',
+          '.cmd-widget[data-template="meteobelgiqueirm"] .mbiHourRisk{font-size:.82em;font-weight:600;color:var(--al-info-color);line-height:1.1}',
           '.cmd-widget[data-template="meteobelgiqueirm"] .mbiDays{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;width:100%;margin-top:3px}',
           '.cmd-widget[data-template="meteobelgiqueirm"] .mbiDay{display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 5px;font-size:.76em;line-height:1.25;border-radius:var(--border-radius);background:var(--btnEq-default-color);color:var(--txt-color)}',
           '.cmd-widget[data-template="meteobelgiqueirm"] .mbiDayName{font-weight:600}',
@@ -198,6 +199,17 @@
         /* --- Heure par heure, jusqu'à la fin de la journée. --- */
         hours.innerHTML = ''
         if (mbiShowHours && data.hours && data.hours.length) {
+          /* Une rangée de rectangles gris vides n'apprend rien : quand aucune
+             heure n'annonce de pluie, la ligne de barres disparaît entièrement
+             plutôt que de meubler. Le seuil écarte au passage les 1 ou 2 % que
+             le modèle produit par principe et qu'on ne saurait pas lire. */
+          var mbiMaxRisk = 0
+          for (var q = 0; q < data.hours.length; q++) {
+            var qr = data.hours[q].r
+            if (qr !== null && qr !== undefined && qr > mbiMaxRisk) { mbiMaxRisk = qr }
+          }
+          var mbiWithBars = (mbiMaxRisk >= 5)
+
           for (var n = 0; n < data.hours.length; n++) {
             var hour = data.hours[n]
             var col = document.createElement('div')
@@ -217,17 +229,29 @@
             hourTemp.textContent = (hour.t === null || hour.t === undefined) ? '' : hour.t + '°'
             col.appendChild(hourTemp)
 
-            var bar = document.createElement('span')
-            bar.className = 'mbiHourBar'
-            var fill = document.createElement('span')
-            /* Un risque nul laisse la barre vide plutôt que de la masquer : une
-               colonne plus courte que ses voisines se remarque, une colonne
-               absente déforme la bande. */
             var risk = (hour.r === null || hour.r === undefined) ? 0 : hour.r
-            fill.style.height = Math.max(0, Math.min(100, risk)) + '%'
-            bar.appendChild(fill)
-            bar.title = '{{Risque de pluie}} : ' + risk + ' %'
-            col.appendChild(bar)
+            if (mbiWithBars) {
+              /* Le rail gris n'a de sens que comme référence de hauteur : il ne
+                 s'affiche donc que lorsqu'au moins une colonne a de quoi le
+                 remplir. */
+              var bar = document.createElement('span')
+              bar.className = 'mbiHourBar'
+              var fill = document.createElement('span')
+              fill.style.height = Math.max(0, Math.min(100, risk)) + '%'
+              bar.appendChild(fill)
+              bar.title = '{{Risque de pluie}} : ' + risk + ' %'
+              col.appendChild(bar)
+
+              /* Au-delà d'une chance sur trois, le chiffre vaut mieux qu'une
+                 hauteur à estimer à l'oeil : c'est le moment où l'on décide de
+                 sortir ou non. */
+              if (risk >= 30) {
+                var pct = document.createElement('span')
+                pct.className = 'mbiHourRisk'
+                pct.textContent = risk + '%'
+                col.appendChild(pct)
+              }
+            }
 
             hours.appendChild(col)
           }
