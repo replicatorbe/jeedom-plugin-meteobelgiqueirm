@@ -443,7 +443,12 @@ section('Bande heure par heure');
  * charge que la commande devra porter. */
 $raw = json_decode(file_get_contents(__DIR__ . '/fixtures/forecast_25121.json'), true);
 $model = invoke($eq, 'buildModel', array($raw));
-$hours = invoke($eq, 'buildHours', array($model, time()));
+/* L'API date ses heures par rapport au jour de l'appel : la réponse figée
+ * commence donc chaque jour à la même heure, et « maintenant » doit s'y caler.
+ * Avec time(), la bande dépendait de l'heure du lancement : avant la première
+ * heure de la réponse, sa première colonne était une heure à venir. */
+$bandNow = $model['hourly'][0]['ts'] + 50 * 60;
+$hours = invoke($eq, 'buildHours', array($model, $bandNow));
 
 check('la bande n\'est pas vide', count($hours) > 0, true);
 check('elle ne dépasse pas la largeur tenable', count($hours) <= 8, true);
@@ -473,7 +478,7 @@ check('le passage à minuit est marqué', $marked, true);
 /* La première colonne est l'heure en cours, pas la suivante : à 14 h 50, la
  * colonne « 14 » décrit encore le temps qu'il fait. */
 check('la bande commence à l\'heure courante',
-    $hours[0]['h'] === (int) date('G'), true);
+    $hours[0]['h'] === (int) date('G', $bandNow), true);
 
 /*
  * Regroupement : quand la bande couvre plus d'heures qu'elle n'a de colonnes,
