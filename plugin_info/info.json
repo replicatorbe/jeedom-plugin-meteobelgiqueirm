@@ -1,7 +1,7 @@
 {
     "id": "meteobelgiqueirm",
     "name": "Météo Belgique IRM",
-    "pluginVersion": "0.1",
+    "pluginVersion": "0.2",
     "description": {
         "fr_FR": "Météo belge complète à partir des données de l'Institut Royal Météorologique (IRM/KMI) : observations, prévisions à sept jours, prévisions horaires, prévision de pluie à courte échéance et avertissements officiels jaune, orange et rouge. Chaque équipement représente une commune, choisie par son nom : le plugin expose les commandes info attendues par les widgets météo de Jeedom, le bulletin rédigé de l'IRM en français, et un niveau de vigilance exploitable en scénario pour fermer les volets avant l'orage ou prévenir du verglas. Ce plugin n'est pas affilié à l'IRM et n'est ni parrainé ni approuvé par lui.",
         "en_US": "Complete Belgian weather from the Royal Meteorological Institute (RMI/KMI/IRM): observations, seven-day forecast, hourly forecast, short-term rain forecast and official yellow, orange and red warnings. Each device stands for one municipality, picked by name: the plugin exposes the info commands expected by Jeedom weather widgets, the RMI written bulletin, and a warning level usable in scenarios to close the shutters before a storm or warn about black ice. This plugin is not affiliated with, sponsored or endorsed by the Royal Meteorological Institute of Belgium."

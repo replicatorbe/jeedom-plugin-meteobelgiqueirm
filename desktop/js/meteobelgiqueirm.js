@@ -232,8 +232,8 @@ function meteobelgiqueirmShowActions(_list) {
     tag.className = 'label label-info'
     tag.style.fontSize = '1em'
     tag.style.marginRight = '5px'
-    /* jeedom.cmd.byId est asynchrone : on affiche l'identifiant d'abord, le nom
-       le remplace dès qu'il arrive. Sans cela, la liste clignote à vide. */
+    /* Le nom arrive de façon asynchrone : on affiche l'identifiant d'abord, le
+       nom le remplace dès qu'il arrive. Sans cela, la liste clignote à vide. */
     tag.textContent = '#' + ids[i]
     row.appendChild(tag)
 
@@ -249,18 +249,28 @@ function meteobelgiqueirmShowActions(_list) {
   }
 }
 
+/* jeedom.cmd.byId ne rend que la commande brute, sans son nom complet : la
+   liste restait sur « #6737 ». getHumanCmdName, lui, rend « #[Objet][Équipement]
+   [Commande]# », ou l'identifiant inchangé si la commande n'existe plus. */
 function meteobelgiqueirmNameAction(_id, _tag) {
-  if (typeof jeedom === 'undefined' || !isset(jeedom.cmd) || !isset(jeedom.cmd.byId)) { return }
-  jeedom.cmd.byId({
-    id: _id,
-    error: function () {
-      /* Commande supprimée depuis : le dire plutôt que de laisser un numéro
-         qui ne correspond plus à rien. */
-      _tag.className = 'label label-danger'
-      _tag.textContent = '#' + _id + ' {{(introuvable)}}'
-    },
-    success: function (result) {
-      _tag.textContent = result.human !== undefined ? result.human : ('#' + _id)
+  if (typeof domUtils === 'undefined') { return }
+  domUtils.ajax({
+    type: 'POST',
+    url: 'core/ajax/cmd.ajax.php',
+    data: { action: 'getHumanCmdName', id: _id },
+    dataType: 'json',
+    global: false,
+    error: function () {},
+    success: function (data) {
+      if (data.state !== 'ok' || typeof data.result !== 'string') { return }
+      if (data.result === '#' + _id + '#' || data.result === '') {
+        /* Commande supprimée depuis : le dire plutôt que de laisser un numéro
+           qui ne correspond plus à rien. */
+        _tag.className = 'label label-danger'
+        _tag.textContent = '#' + _id + ' {{(introuvable)}}'
+        return
+      }
+      _tag.textContent = data.result.replace(/^#|#$/g, '')
     }
   })
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2 — 29/09/2026
+
+- Les listes d'actions (vigilance et bulletin du matin) affichent le nom
+  complet des commandes (`[Objet][Équipement][Commande]`) au lieu de leur
+  numéro (`#6737`) : jeedom.cmd.byId ne fournit pas ce nom.
+
 ## 0.1
 
 Première version.
