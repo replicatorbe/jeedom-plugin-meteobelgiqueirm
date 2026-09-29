@@ -18,6 +18,8 @@ livrées avec le plugin. Aucune clé, aucun compte, aucune dépendance.
   pendant 2h30 ». C'est ce qui rentre le linge.
 - **Les avertissements belges**, avec la distinction entre ce qui est **en
   cours** et ce qui est seulement **annoncé**.
+- **Un bulletin du matin** : minimum, maximum et conseils du jour, envoyés une
+  seule fois par jour à l'heure choisie, aux actions de son choix.
 - **Une donnée périmée se voit.** Les valeurs sont publiées avec leur vraie date
   de relevé, et Jeedom marque l'équipement en défaut au bout de 45 minutes.
 

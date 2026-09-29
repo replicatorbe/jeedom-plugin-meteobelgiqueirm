@@ -87,6 +87,25 @@ try {
         ajax::success($sent);
     }
 
+    /*
+     * Essai du bulletin du matin : le vrai bulletin du jour, envoyé tout de
+     * suite avec la configuration ENREGISTRÉE, et l'état actuel de la
+     * condition pour qu'on puisse la vérifier sans attendre demain matin.
+     */
+    if (init('action') == 'testBulletin') {
+        unautorizedInDemo();
+
+        $eqLogic = eqLogic::byId(init('id'));
+        if (!is_object($eqLogic) || $eqLogic->getEqType_name() != 'meteobelgiqueirm') {
+            throw new Exception(__('Commune introuvable :', __FILE__) . ' ' . init('id'));
+        }
+        $result = $eqLogic->testBulletin();
+        if ($result['sent'] === 0) {
+            throw new Exception(__('Aucune action n\'a pu être exécutée. Vérifiez la liste, et enregistrez la commune si vous venez de la modifier.', __FILE__));
+        }
+        ajax::success($result);
+    }
+
     throw new Exception(__('Aucune méthode correspondante à :', __FILE__) . ' ' . init('action'));
 
 /*

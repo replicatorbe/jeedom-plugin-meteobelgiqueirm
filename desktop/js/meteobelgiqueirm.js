@@ -165,16 +165,26 @@ function meteobelgiqueirmPickCommune(_select) {
 
 /* ================================================================ ALERTES */
 
-/* La liste des actions est stockée dans un seul champ, en identifiants séparés
-   par des virgules : un tableau imbriqué dans la configuration se relit mal
-   depuis le formulaire du coeur, et se perd au premier enregistrement fait
-   depuis un autre écran. */
-function meteobelgiqueirmActionField() {
-  return document.querySelector('.eqLogicAttr[data-l1key="configuration"][data-l2key="alert_cmds"]')
+/* Deux listes d'actions partagent le même sélecteur : celle des vigilances et
+   celle du bulletin du matin. Chacune est stockée dans un seul champ, en
+   identifiants séparés par des virgules : un tableau imbriqué dans la
+   configuration se relit mal depuis le formulaire du coeur, et se perd au
+   premier enregistrement fait depuis un autre écran. */
+var meteobelgiqueirmLists = {
+  alert: { key: 'alert_cmds', box: 'div_meteobelgiqueirmActions' },
+  bulletin: { key: 'bulletin_cmds', box: 'div_meteobelgiqueirmBulletinActions' }
 }
 
-function meteobelgiqueirmActionIds() {
-  var field = meteobelgiqueirmActionField()
+function meteobelgiqueirmList(_list) {
+  return meteobelgiqueirmLists[_list] || meteobelgiqueirmLists.alert
+}
+
+function meteobelgiqueirmActionField(_list) {
+  return document.querySelector('.eqLogicAttr[data-l1key="configuration"][data-l2key="' + meteobelgiqueirmList(_list).key + '"]')
+}
+
+function meteobelgiqueirmActionIds(_list) {
+  var field = meteobelgiqueirmActionField(_list)
   if (field === null || field.value === '') { return [] }
   /* Un identifiant de commande est un entier : parseInt écarte d'un coup les
      espaces, les dièses que rend le sélecteur du coeur, et les restes d'une
@@ -188,26 +198,28 @@ function meteobelgiqueirmActionIds() {
   return out
 }
 
-function meteobelgiqueirmSetActionIds(_ids) {
-  var field = meteobelgiqueirmActionField()
+function meteobelgiqueirmSetActionIds(_list, _ids) {
+  var field = meteobelgiqueirmActionField(_list)
   if (field === null) { return }
   field.value = _ids.join(',')
-  meteobelgiqueirmShowActions()
+  meteobelgiqueirmShowActions(_list)
 }
 
 /* Affiche chaque action avec son nom complet, et une croix pour la retirer. Un
    identifiant nu ne dit rien à personne trois mois plus tard. */
-function meteobelgiqueirmShowActions() {
-  var box = meteobelgiqueirmEl('div_meteobelgiqueirmActions')
+function meteobelgiqueirmShowActions(_list) {
+  var box = meteobelgiqueirmEl(meteobelgiqueirmList(_list).box)
   if (box === null) { return }
   box.innerHTML = ''
 
-  var ids = meteobelgiqueirmActionIds()
+  var ids = meteobelgiqueirmActionIds(_list)
   if (ids.length === 0) {
     var none = document.createElement('div')
     none.className = 'help-block'
     none.style.margin = '0 0 5px 0'
-    none.textContent = '{{Aucune action : vous ne serez prévenu de rien.}}'
+    none.textContent = (_list === 'bulletin')
+      ? '{{Aucune action : le bulletin ne partira nulle part.}}'
+      : '{{Aucune action : vous ne serez prévenu de rien.}}'
     box.appendChild(none)
     return
   }
@@ -228,6 +240,7 @@ function meteobelgiqueirmShowActions() {
     var remove = document.createElement('a')
     remove.className = 'btn btn-danger btn-xs meteobelgiqueirmDropAction'
     remove.setAttribute('data-cmd-id', ids[i])
+    remove.setAttribute('data-list', _list)
     remove.innerHTML = '<i class="fas fa-times"></i>'
     row.appendChild(remove)
 
@@ -252,30 +265,30 @@ function meteobelgiqueirmNameAction(_id, _tag) {
   })
 }
 
-function meteobelgiqueirmAddAction() {
+function meteobelgiqueirmAddAction(_list) {
   if (typeof jeedom === 'undefined' || !isset(jeedom.cmd) || !isset(jeedom.cmd.getSelectModal)) { return }
   jeedom.cmd.getSelectModal({ cmd: { type: 'action' } }, function (result) {
     if (!isset(result.cmd) || !isset(result.cmd.id) || result.cmd.id === '') { return }
     var id = parseInt(String(result.cmd.id).replace('#', ''), 10)
     if (isNaN(id) || id <= 0) { return }
     id = String(id)
-    var ids = meteobelgiqueirmActionIds()
+    var ids = meteobelgiqueirmActionIds(_list)
     /* Deux fois la même action enverrait deux fois le même message. */
     for (var i = 0; i < ids.length; i++) {
       if (ids[i] === id) { return }
     }
     ids.push(id)
-    meteobelgiqueirmSetActionIds(ids)
+    meteobelgiqueirmSetActionIds(_list, ids)
   })
 }
 
-function meteobelgiqueirmDropAction(_id) {
-  var ids = meteobelgiqueirmActionIds()
+function meteobelgiqueirmDropAction(_list, _id) {
+  var ids = meteobelgiqueirmActionIds(_list)
   var kept = []
   for (var i = 0; i < ids.length; i++) {
     if (ids[i] !== String(_id)) { kept.push(ids[i]) }
   }
-  meteobelgiqueirmSetActionIds(kept)
+  meteobelgiqueirmSetActionIds(_list, kept)
 }
 
 function meteobelgiqueirmTestAlert() {
@@ -284,7 +297,7 @@ function meteobelgiqueirmTestAlert() {
     jeedomUtils.showAlert({ message: '{{Enregistrez la commune avant de tester l\'alerte.}}', level: 'warning' })
     return
   }
-  if (meteobelgiqueirmActionIds().length === 0) {
+  if (meteobelgiqueirmActionIds('alert').length === 0) {
     jeedomUtils.showAlert({ message: '{{Ajoutez au moins une action avant de tester.}}', level: 'warning' })
     return
   }
@@ -295,6 +308,78 @@ function meteobelgiqueirmTestAlert() {
     jeedomUtils.showAlert({
       message: '{{Message d\'essai envoyé à}} ' + result.result + ' {{action(s).}}',
       level: 'success'
+    })
+  })
+}
+
+/* ======================================================= BULLETIN DU MATIN */
+
+/* Les cases des jours ne sont pas des champs du coeur : elles tiennent à jour un
+   champ unique, où le vide veut dire « tous les jours » et « 0 » « aucun ». Une
+   commune créée avant les jours s'ouvre ainsi toutes cases cochées, au lieu de
+   perdre son bulletin au premier enregistrement. */
+function meteobelgiqueirmDaysField() {
+  return document.querySelector('.eqLogicAttr[data-l1key="configuration"][data-l2key="bulletin_days"]')
+}
+
+function meteobelgiqueirmShowDays() {
+  var field = meteobelgiqueirmDaysField()
+  var value = (field === null) ? '' : field.value
+  var boxes = document.querySelectorAll('.meteobelgiqueirmBulletinDay')
+  for (var i = 0; i < boxes.length; i++) {
+    boxes[i].checked = (value === '') || value.indexOf(boxes[i].getAttribute('data-day')) !== -1
+  }
+}
+
+function meteobelgiqueirmStoreDays() {
+  var field = meteobelgiqueirmDaysField()
+  if (field === null) { return }
+  var boxes = document.querySelectorAll('.meteobelgiqueirmBulletinDay')
+  var value = ''
+  for (var i = 0; i < boxes.length; i++) {
+    if (boxes[i].checked) { value += boxes[i].getAttribute('data-day') }
+  }
+  /* Tout coché redevient le vide : « tous les jours » ne doit pas dépendre du
+     nombre de cases qu'affichait l'interface le jour de l'enregistrement. */
+  if (value.length === boxes.length) { value = '' } else if (value === '') { value = '0' }
+  field.value = value
+}
+
+/* Insère une commande info dans la condition, sous sa forme lisible : le coeur
+   la convertit en identifiant à l'enregistrement, et un renommage ne la casse
+   donc pas. */
+function meteobelgiqueirmPickCondition() {
+  if (typeof jeedom === 'undefined' || !isset(jeedom.cmd) || !isset(jeedom.cmd.getSelectModal)) { return }
+  jeedom.cmd.getSelectModal({ cmd: { type: 'info' } }, function (result) {
+    if (!isset(result.human) || result.human === '') { return }
+    var input = document.querySelector('.eqLogicAttr[data-l1key="configuration"][data-l2key="bulletin_condition"]')
+    if (input === null) { return }
+    input.value = (input.value.trim() === '') ? result.human + ' == 1' : input.value + ' ' + result.human
+  })
+}
+
+function meteobelgiqueirmTestBulletin() {
+  var id = document.querySelector('.eqLogicAttr[data-l1key="id"]')
+  if (id === null || id.value === '') {
+    jeedomUtils.showAlert({ message: '{{Enregistrez la commune avant de tester le bulletin.}}', level: 'warning' })
+    return
+  }
+  if (meteobelgiqueirmActionIds('bulletin').length === 0) {
+    jeedomUtils.showAlert({ message: '{{Ajoutez au moins une action avant de tester.}}', level: 'warning' })
+    return
+  }
+  /* Comme pour les vigilances, l'essai part avec la configuration
+     ENREGISTRÉE. La valeur actuelle de la condition est rendue avec : c'est le
+     seul moyen de la vérifier sans attendre demain matin. */
+  meteobelgiqueirmAjax('testBulletin', { id: id.value }, function (result) {
+    var r = result.result
+    var condition = ''
+    if (r.condition === 'true') { condition = ' {{La condition est vraie en ce moment.}}' }
+    if (r.condition === 'false') { condition = ' {{La condition est fausse en ce moment : demain, le bulletin ne partirait pas.}}' }
+    if (r.condition === 'error') { condition = ' {{La condition est impossible à calculer : demain, le bulletin ne partirait pas.}}' }
+    jeedomUtils.showAlert({
+      message: '{{Bulletin d\'essai envoyé à}} ' + r.sent + ' {{action(s) :}} « ' + r.message + ' ».' + condition,
+      level: (r.condition === 'false' || r.condition === 'error') ? 'warning' : 'success'
     })
   })
 }
@@ -447,7 +532,9 @@ function printEqLogic(_eqLogic) {
   meteobelgiqueirmClear()
   meteobelgiqueirmStatus('', '')
   meteobelgiqueirmShowCommune()
-  meteobelgiqueirmShowActions()
+  meteobelgiqueirmShowActions('alert')
+  meteobelgiqueirmShowActions('bulletin')
+  meteobelgiqueirmShowDays()
 
   if (isset(_eqLogic.id) && _eqLogic.id !== '') {
     meteobelgiqueirmLoad(_eqLogic.id)
@@ -524,9 +611,10 @@ meteobelgiqueirmContainer.addEventListener('click', function (_event) {
     meteobelgiqueirmRefresh()
     return
   }
-  if (target.closest('#bt_meteobelgiqueirmAddAction') !== null) {
+  var add = target.closest('.meteobelgiqueirmAddAction')
+  if (add !== null) {
     _event.preventDefault()
-    meteobelgiqueirmAddAction()
+    meteobelgiqueirmAddAction(add.getAttribute('data-list'))
     return
   }
   if (target.closest('#bt_meteobelgiqueirmTestAlert') !== null) {
@@ -534,10 +622,20 @@ meteobelgiqueirmContainer.addEventListener('click', function (_event) {
     meteobelgiqueirmTestAlert()
     return
   }
+  if (target.closest('#bt_meteobelgiqueirmTestBulletin') !== null) {
+    _event.preventDefault()
+    meteobelgiqueirmTestBulletin()
+    return
+  }
+  if (target.closest('#bt_meteobelgiqueirmBulletinCondition') !== null) {
+    _event.preventDefault()
+    meteobelgiqueirmPickCondition()
+    return
+  }
   var drop = target.closest('.meteobelgiqueirmDropAction')
   if (drop !== null) {
     _event.preventDefault()
-    meteobelgiqueirmDropAction(drop.getAttribute('data-cmd-id'))
+    meteobelgiqueirmDropAction(drop.getAttribute('data-list'), drop.getAttribute('data-cmd-id'))
     return
   }
   if (target.closest('#bt_meteobelgiqueirmHideHidden') !== null) {
@@ -555,6 +653,9 @@ meteobelgiqueirmContainer.addEventListener('click', function (_event) {
 meteobelgiqueirmContainer.addEventListener('change', function (_event) {
   if (_event.target !== null && _event.target.id === 'sel_meteobelgiqueirmCommune') {
     meteobelgiqueirmPickCommune(_event.target)
+  }
+  if (_event.target !== null && _event.target.classList.contains('meteobelgiqueirmBulletinDay')) {
+    meteobelgiqueirmStoreDays()
   }
 })
 

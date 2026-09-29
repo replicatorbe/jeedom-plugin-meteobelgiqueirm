@@ -50,6 +50,7 @@ commune devenue invalide cesse de consommer des requêtes pour rien.
 | `uv` | indice UV, quand l'IRM le publie |
 | `sunrise`, `sunset` | lever et coucher, en entier `HMM` — 732 pour 7 h 32, la convention de Jeedom |
 | `data_age` | âge du dernier relevé, en minutes |
+| `icon_mdi` | *Icône* : nom d'icône Material Design Icons des conditions actuelles, pour un affichage hors de Jeedom — voir plus bas |
 
 ### La pluie à courte échéance
 
@@ -80,6 +81,35 @@ ferme les vélux.
 > présence d'un avertissement fermerait les volets une demi-journée trop tôt.
 > C'est pourquoi `warning_active` et `warning_level` ne parlent que de ce qui est
 > **en cours**, et que le prochain avertissement a ses propres commandes.
+
+### Le jour même
+
+Les prévisions `_1` à `_7` commencent à **demain**. Le jour même a ses propres
+commandes — ce sont les valeurs du bulletin du matin, publiées pour que les
+scénarios puissent s'en servir aussi :
+
+| Commande | Nom | Ce qu'elle contient |
+|---|---|---|
+| `temperature_0_min` | Température min du jour | minimum prévu aujourd'hui, en °C |
+| `temperature_0_max` | Température max du jour | maximum prévu aujourd'hui, en °C |
+| `condition_0` | Conditions du jour | temps de la journée en clair |
+| `condition_id_0` | Code conditions du jour | le même, en code WeatherAPI |
+| `rain_chance_0` | Risque de pluie du jour | en % |
+
+Elles sont lues dans le bloc *journée* de la prévision de l'IRM, jamais dans
+celui de la nuit qui suit. L'IRM vide ce bloc au fil de la journée, et le plugin
+se replie alors sur les prévisions heure par heure qui restent :
+
+- **le minimum** disparaît vers la mi-journée — relevé réel à 12 h 44 : absent.
+  Tant qu'il reste des heures avant midi, le plus bas d'entre elles le remplace
+  (à 6 h 30, c'est bien le minimum du matin, celui qui décide du gel). Ensuite il
+  est **inconnu** : la commande garde sa dernière valeur, et la balise `#min#` du
+  bulletin reste vide ;
+- **le maximum**, quand le bloc a disparu (le soir), devient le plus haut entre
+  la température observée et les heures restantes ;
+- **le risque de pluie**, de même, le plus haut des heures restantes ;
+- **les conditions** ne se replient pas : le soir, la seule candidate serait la
+  nuit, et « Ciel dégagé » n'est pas le temps qu'il a fait.
 
 ### Les prévisions
 
@@ -189,6 +219,165 @@ prix d'un message de plus par épisode.
 
 Ce mécanisme est indépendant des commandes : `warning_level` continue de
 fonctionner pour vos scénarios, et les deux peuvent coexister.
+
+## Le bulletin du matin
+
+Chaque jour à l'heure choisie, un message court, par exemple :
+
+> **Météo du jour** — 12°C - 21°C | Prenez un parapluie | Prévoyez une veste chaude
+
+Il remplace l'automatisation Home Assistant du même nom, dont il reprend l'heure
+(6 h 30), le format et les conseils. Il se règle dans l'onglet *Équipement*,
+section **Le bulletin du matin**, sur le même modèle que les vigilances, et il
+est **désactivé par défaut**.
+
+| Réglage | Clé de configuration | Par défaut |
+|---|---|---|
+| Activer | `bulletin_enable` (`0` / `1`) | `0` |
+| Heure d'envoi | `bulletin_time` (`HH:MM`) | `06:30` |
+| Jours | `bulletin_days` : chiffres ISO, `1` = lundi ; vide = tous les jours, `0` = aucun | vide |
+| Seulement si | `bulletin_condition` : expression Jeedom, vide = toujours | vide |
+| Actions | `bulletin_cmds` : identifiants de commandes séparés par des virgules, comme `alert_cmds` | vide |
+| En parallèle | `bulletin_background` (`0` / `1`) | `0` |
+| Titre | `bulletin_title` | `Météo du jour` |
+| Message | `bulletin_message` | `#min#°C - #max#°C \| #conseils#` |
+
+**Les balises**, dans le titre comme dans le message :
+
+| Balise | Contenu |
+|---|---|
+| `#min#`, `#max#` | minimum et maximum du jour, arrondis au degré — vides s'ils sont inconnus |
+| `#conditions#` | temps de la journée en clair |
+| `#conseils#` | les conseils du jour, séparés par « \| » |
+| `#bulletin#` | le bulletin rédigé de l'IRM pour aujourd'hui (`bulletin_0`) |
+| `#commune#` | nom de la commune |
+| `#vent#` | vent moyen le plus fort de la journée, en km/h |
+| `#pluie#` | risque de pluie du jour, en % (le nombre seul : écrivez `#pluie# %`) |
+
+### Les conseils
+
+Repris de Home Assistant, dans cet ordre, joints par « | » :
+
+| Si… | Conseil |
+|---|---|
+| pluie, averses ou orage dans la journée | Prenez un parapluie |
+| minimum < 0 °C | Couvrez-vous bien, risque de gel |
+| sinon minimum < 5 °C | Prévoyez une veste chaude |
+| maximum > 25 °C | Beau et chaud, pensez à vous hydrater |
+| vent moyen > 40 km/h | Vent fort, sécurisez la terrasse |
+| neige dans la journée | Neige prévue, prudence sur la route |
+| brouillard ou brume dans la journée | Brouillard, roulez prudemment |
+| aucun des cas précédents | Journée agréable en perspective |
+
+Les seuils sont stricts : 25 °C pile n'est pas « chaud ». Les conditions sont lues
+sur les **codes** de l'IRM, jamais sur les libellés : pluie = codes 2, 4 à 10,
+13, 16 à 21 ; neige = 8 à 13, 20, 22, 23 ; brouillard = 24 à 27. Un même code
+peut compter deux fois — les averses de pluie et neige mêlées appellent le
+parapluie *et* la prudence sur la route. « Dans la journée », c'est le temps du
+bloc journée de l'IRM (matin et après-midi) plus chaque heure restante jusqu'à
+22 h : l'averse de 16 h compte, le brouillard de minuit non.
+
+Un **minimum inconnu** n'est pas un minimum doux : ni le gel ni la veste ne sont
+alors évalués.
+
+### Une seule fois par jour
+
+Le plugin passe toutes les dix minutes : l'heure est donc arrondie au passage
+suivant (6 h 35 part à 6 h 40). Une fois le bulletin parti, la date est
+mémorisée dans le cache de l'équipement — le même que celui des vigilances, que
+Jeedom sauvegarde à l'arrêt et restaure au démarrage — et il ne repart plus avant
+le lendemain.
+
+**Si Jeedom était arrêté à l'heure dite**, le bulletin part encore dans les
+**deux heures** qui suivent, jamais au-delà : « Prévoyez une veste chaude » à
+midi ne sert plus à rien et ferait croire à une panne. C'est la même fenêtre que
+les rappels du plugin de collecte des déchets.
+
+**Enregistrer l'équipement pendant cette fenêtre** ne fait pas partir le bulletin
+du jour : activé à 7 h 10, il partira demain matin. Le bouton *Tester* est là
+pour voir le résultat tout de suite.
+
+**Sans prévision du jour en mémoire**, le bulletin n'est pas envoyé — « °C - °C |
+Journée agréable en perspective » serait faux sans que rien ne le signale. Il
+est retenté à chaque passage tant que la fenêtre de deux heures n'est pas close,
+et le journal le signale une fois.
+
+### La condition
+
+Facultative, au format des scénarios, et vérifiée à l'heure d'envoi. Pour ne
+recevoir le bulletin que si quelqu'un est à la maison :
+
+```
+#[Maison][Présence][Quelqu'un]# == 1
+```
+
+Le bouton à droite du champ insère une commande info sous sa forme lisible ;
+Jeedom l'enregistre sous forme d'identifiant (`#5433# == 1`), si bien qu'un
+renommage ne la casse pas.
+
+- **Vraie** : le bulletin part.
+- **Fausse** : il est sauté *pour la journée*. Il n'est pas retenté si la
+  condition devient vraie plus tard dans la fenêtre : quelqu'un qui rentre à
+  8 h 20 n'a que faire du bulletin de 6 h 30.
+- **Impossible à calculer** — commande supprimée, faute de frappe, valeur vide :
+  il n'est **pas** envoyé non plus, et le journal le signale en *warning*. La
+  condition existe pour taire le bulletin quand la maison est vide ; une
+  commande de présence cassée ne doit pas se mettre à réveiller un téléphone en
+  vacances.
+
+Seuls un booléen et un nombre font foi : `1` et `vrai` passent, un texte que
+Jeedom n'a pas su calculer non.
+
+### Tester, et l'option « en parallèle »
+
+**Tester** envoie tout de suite le vrai bulletin du jour, avec la configuration
+*enregistrée*, le titre préfixé par « Essai — ». La condition n'est pas
+appliquée, mais sa valeur du moment est affichée : c'est le seul moyen de la
+vérifier sans attendre le lendemain. L'essai ne touche pas à la mémoire d'envoi.
+
+**En parallèle** confie chaque action à Jeedom, qui la lance dans un processus à
+part — l'option du même nom des scénarios. Une synthèse vocale de vingt secondes
+ne retarde plus le relevé des autres communes ; en contrepartie, le plugin sait
+que l'action est partie, pas qu'elle a réussi. L'essai, lui, s'exécute toujours
+au premier plan.
+
+## L'icône, pour un affichage hors de Jeedom
+
+La commande `icon_mdi` (*Icône*) publie un nom d'icône **Material Design Icons**
+correspondant aux conditions **actuelles** — `mdi:weather-sunny`,
+`mdi:weather-night`… — pour un écran qui ne sait dessiner qu'un nom d'icône, une
+télévision par exemple.
+
+| Codes IRM | Conditions | Icône de jour | Icône de nuit |
+|---|---|---|---|
+| 0 | ensoleillé | `mdi:weather-sunny` | `mdi:weather-night` |
+| 1, 3 | peu ou partiellement nuageux | `mdi:weather-partly-cloudy` | `mdi:weather-night-partly-cloudy` |
+| 14, 15 | nuageux, couvert | `mdi:weather-cloudy` | idem |
+| 4, 6, 18 | averses, pluie | `mdi:weather-rainy` | idem |
+| 16, 19 | pluie forte | `mdi:weather-pouring` | idem |
+| 2, 5, 7, 10, 17 | averses orageuses, pluie orageuse | `mdi:weather-lightning-rainy` | idem |
+| 13 | averses de neige orageuses | `mdi:weather-lightning` | idem |
+| 8, 9, 20 | pluie et neige mêlées | `mdi:weather-snowy-rainy` | idem |
+| 11, 12, 22, 23 | neige | `mdi:weather-snowy` | idem |
+| 21 | pluie verglaçante | `mdi:weather-hail` | idem |
+| 24 à 27 | brume, brouillard | `mdi:weather-fog` | idem |
+| inconnu | — | `mdi:weather-cloudy` | idem |
+
+Trois choix à connaître :
+
+- **Code inconnu → ciel couvert.** C'est l'icône qui promet le moins, et un point
+  d'interrogation sur une télévision se lit comme une panne de l'écran.
+- **La pluie verglaçante prend la grêle**, seul pictogramme qui dise « glace » :
+  pluie et neige mêlées annoncerait des flocons qui ne tombent pas.
+- **Le vent.** L'IRM n'a pas de code « vent » : par temps sec (codes 0, 1, 3, 14,
+  15) et au-delà de 50 km/h de vent moyen, l'icône devient `mdi:weather-windy`
+  (`mdi:weather-windy-variant` sous les nuages). Par temps de pluie, la pluie
+  reste l'information utile.
+
+Le jeu d'icônes est celui de Home Assistant : les variantes plus récentes de la
+police (« partly-rainy »…) manquent aux versions anciennes et s'afficheraient
+comme un carré vide. Quand l'observation ne donne pas de code, la commande garde
+sa valeur précédente.
 
 ## Quand l'IRM est indisponible
 

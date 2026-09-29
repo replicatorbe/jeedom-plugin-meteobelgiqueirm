@@ -112,3 +112,25 @@ class eqLogic {
     public function setDisplay($_k, $_v) {}
     public static function byType($_type, $_onlyEnable = false) { return array(); }
 }
+
+/* L'évaluateur d'expressions du coeur, réduit à une table de réponses : le
+ * jeu d'essai décide de ce que vaut chaque condition. Une expression absente
+ * de la table revient telle quelle, exactement comme le coeur rend une
+ * expression qu'il ne sait pas calculer. */
+class jeedom {
+    public static $results = array();
+    public static function evaluateExpression($_input, $_scenario = null) {
+        return array_key_exists($_input, self::$results) ? self::$results[$_input] : $_input;
+    }
+    public static function toHumanReadable($_input) { return $_input; }
+}
+
+/* Les actions lancées « en parallèle » passent par le coeur : on les note
+ * pour vérifier qu'elles sont parties, et par où. */
+class scenarioExpression {
+    public static $launched = array();
+    public static function createAndExec($_type, $_cmd, $_options = null) {
+        self::$launched[] = array('type' => $_type, 'cmd' => $_cmd, 'options' => $_options);
+        return true;
+    }
+}

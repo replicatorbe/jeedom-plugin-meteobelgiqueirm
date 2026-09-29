@@ -202,6 +202,126 @@ class meteobelgiqueirm extends eqLogic {
         3 => 'Vigilance rouge',
     );
 
+    /* ============================================== BULLETIN DU MATIN */
+
+    /*
+     * Réglages d'un bulletin neuf. Désactivé : un message quotidien que
+     * personne n'a demandé est un message qu'on coupe, et avec lui la confiance
+     * dans les autres. L'heure et les textes reprennent l'automatisation Home
+     * Assistant que ce bulletin remplace, pour qu'en l'activant on retrouve
+     * exactement ce qu'on recevait.
+     */
+    const BULLETIN_TIME_DEFAULT = '06:30';
+    const BULLETIN_TITLE_DEFAULT = 'Météo du jour';
+    const BULLETIN_MESSAGE_DEFAULT = '#min#°C - #max#°C | #conseils#';
+
+    /*
+     * Un bulletin manqué — box éteinte, redémarrage, cron en retard — part
+     * encore s'il n'a que deux heures de retard, comme les rappels de collecte
+     * du plugin hygeabe. Au-delà, il se tait : « Prévoyez une veste chaude » à
+     * onze heures, quand on est dehors depuis longtemps, ne sert plus à rien et
+     * fait croire à une panne.
+     */
+    const BULLETIN_GRACE = 7200;
+
+    /* Heure à laquelle la « journée » du bulletin s'arrête, pour les conseils
+     * tirés des échéances horaires. */
+    const BULLETIN_DAY_END = 22;
+
+    /*
+     * Seuils des conseils, repris tels quels de l'automatisation Home
+     * Assistant. Tous stricts : 25 °C pile n'est pas « chaud », 40 km/h pile
+     * n'est pas « fort ». Le gel porte sur le minimum, la chaleur sur le
+     * maximum, le vent sur la vitesse moyenne — pas les rafales, que HA ne
+     * regardait pas non plus.
+     */
+    const ADVICE_FROST = 0;
+    const ADVICE_COLD = 5;
+    const ADVICE_HOT = 25;
+    const ADVICE_WIND = 40;
+
+    /*
+     * Les conseils s'appuient sur les codes ww de l'IRM, jamais sur des
+     * libellés : un libellé se traduit et se réécrit, le code non. Un même code
+     * peut appartenir à deux familles — les averses de pluie et neige mêlées
+     * appellent à la fois le parapluie et la prudence sur la route.
+     *
+     * Pluie : tout ce qui fait tomber de l'eau liquide, y compris mêlée de
+     * neige ou verglaçante (21), plus les orages (13, averses de neige
+     * orageuses : l'orage suffit à sortir le parapluie).
+     */
+    const ADVICE_RAIN_CODES = array(2, 4, 5, 6, 7, 8, 9, 10, 13, 16, 17, 18, 19, 20, 21);
+    const ADVICE_SNOW_CODES = array(8, 9, 10, 11, 12, 13, 20, 22, 23);
+    /* La brume (24, 26) compte : sur la route, elle gêne autant que le
+     * brouillard, et Home Assistant les rangeait sous la même condition. */
+    const ADVICE_FOG_CODES = array(24, 25, 26, 27);
+
+    /*
+     * Icône Material Design Icons des conditions ACTUELLES, pour un affichage
+     * hors de Jeedom (une télévision, un écran d'accueil) qui ne sait lire
+     * qu'un nom d'icône.
+     *
+     * Indexée comme WW : code ww, puis période. Contrairement aux libellés, la
+     * nuit compte aussi pour le code 3 : « partiellement nuageux » à minuit
+     * avec un soleil dessiné se voit de loin, et le libellé, lui, n'a pas ce
+     * problème.
+     *
+     * Le jeu est celui de Home Assistant (les « weather-* » historiques) : un
+     * affichage qui sait dessiner l'un les sait tous, alors que les variantes
+     * récentes (« weather-partly-rainy »…) manquent aux versions anciennes de
+     * la police et s'afficheraient comme un carré vide.
+     *
+     * 21, la pluie verglaçante, prend la grêle : c'est le seul pictogramme qui
+     * dise « de la glace ». Pluie et neige mêlées annoncerait des flocons qui
+     * ne tombent pas.
+     */
+    const MDI = array(
+        0  => array('d' => 'mdi:weather-sunny', 'n' => 'mdi:weather-night'),
+        1  => array('d' => 'mdi:weather-partly-cloudy', 'n' => 'mdi:weather-night-partly-cloudy'),
+        2  => array('d' => 'mdi:weather-lightning-rainy'),
+        3  => array('d' => 'mdi:weather-partly-cloudy', 'n' => 'mdi:weather-night-partly-cloudy'),
+        4  => array('d' => 'mdi:weather-rainy'),
+        5  => array('d' => 'mdi:weather-lightning-rainy'),
+        6  => array('d' => 'mdi:weather-rainy'),
+        7  => array('d' => 'mdi:weather-lightning-rainy'),
+        8  => array('d' => 'mdi:weather-snowy-rainy'),
+        9  => array('d' => 'mdi:weather-snowy-rainy'),
+        10 => array('d' => 'mdi:weather-lightning-rainy'),
+        11 => array('d' => 'mdi:weather-snowy'),
+        12 => array('d' => 'mdi:weather-snowy'),
+        13 => array('d' => 'mdi:weather-lightning'),
+        14 => array('d' => 'mdi:weather-cloudy'),
+        15 => array('d' => 'mdi:weather-cloudy'),
+        16 => array('d' => 'mdi:weather-pouring'),
+        17 => array('d' => 'mdi:weather-lightning-rainy'),
+        18 => array('d' => 'mdi:weather-rainy'),
+        19 => array('d' => 'mdi:weather-pouring'),
+        20 => array('d' => 'mdi:weather-snowy-rainy'),
+        21 => array('d' => 'mdi:weather-hail'),
+        22 => array('d' => 'mdi:weather-snowy'),
+        23 => array('d' => 'mdi:weather-snowy'),
+        24 => array('d' => 'mdi:weather-fog'),
+        25 => array('d' => 'mdi:weather-fog'),
+        26 => array('d' => 'mdi:weather-fog'),
+        27 => array('d' => 'mdi:weather-fog'),
+    );
+
+    /*
+     * Code inconnu : un ciel couvert. C'est l'icône qui promet le moins — ni
+     * soleil, ni pluie — et un point d'interrogation sur une télévision se lit
+     * comme une panne de l'écran, pas comme une lacune de l'IRM.
+     */
+    const MDI_UNKNOWN = 'mdi:weather-cloudy';
+
+    /*
+     * L'IRM n'a pas de code « vent » : un ciel sec balayé par la tempête
+     * s'afficherait en plein soleil. Au-delà de ce vent moyen — force 7 de
+     * Beaufort, « grand frais » — et seulement par temps sec, l'icône le dit.
+     * Par temps de pluie, la pluie reste l'information la plus utile.
+     */
+    const MDI_WINDY = 50;
+    const MDI_DRY_CODES = array(0, 1, 3, 14, 15);
+
     /*
      * Message d'échec de la dernière lecture, pour que la commande d'action
      * « Rafraîchir » puisse le relayer à un scénario. Le souligné initial n'est
@@ -252,11 +372,24 @@ class meteobelgiqueirm extends eqLogic {
                      * 20 min » resterait affiché une heure plus tard.
                      */
                     $eqLogic->refreshFromCache();
-                    continue;
+                } else {
+                    $eqLogic->update();
                 }
-                $eqLogic->update();
             } catch (Throwable $e) {
                 /* Une commune en échec ne doit pas priver les autres de leur tour. */
+                log::add(__CLASS__, 'error', $eqLogic->getHumanName() . ' : ' . $e->getMessage());
+            }
+
+            /*
+             * Le bulletin passe APRÈS la lecture, pour partir avec la prévision
+             * du matin et non celle de la veille au soir. Il a son propre
+             * garde-fou : une IRM en panne ne doit pas le priver de la dernière
+             * prévision connue, et un bulletin en échec ne doit pas priver les
+             * communes suivantes de leur relevé.
+             */
+            try {
+                $eqLogic->checkBulletin();
+            } catch (Throwable $e) {
                 log::add(__CLASS__, 'error', $eqLogic->getHumanName() . ' : ' . $e->getMessage());
             }
         }
@@ -298,6 +431,7 @@ class meteobelgiqueirm extends eqLogic {
 
     public function postSave() {
         $this->createCommands();
+        $this->settleBulletin();
 
         if (!$this->isConfigured()) {
             return;
@@ -411,6 +545,12 @@ class meteobelgiqueirm extends eqLogic {
             'order' => $order++, 'generic' => 'WEATHER_CONDITION_ID',
         ));
         $this->addCmdIfMissing('day_night', 'Jour ou nuit', 'info', 'string', array('order' => $order++));
+        /*
+         * Un nom d'icône et non du HTML : la commande sert à un affichage hors
+         * de Jeedom — une télévision, un écran d'accueil — qui sait dessiner
+         * « mdi:weather-rainy » mais ne sait rien d'une balise <i>.
+         */
+        $this->addCmdIfMissing('icon_mdi', 'Icône', 'info', 'string', array('order' => $order++));
         $this->addCmdIfMissing('pressure', 'Pression', 'info', 'numeric', array(
             'order' => $order++, 'unite' => 'hPa', 'isHistorized' => 1,
             'generic' => 'WEATHER_PRESSURE', 'icon' => 'fas fa-tachometer-alt',
@@ -505,6 +645,24 @@ class meteobelgiqueirm extends eqLogic {
          * varchar(127)). --- */
         $this->addCmdIfMissing('bulletin_0', 'Bulletin du jour', 'info', 'string', array('order' => $order++));
         $this->addCmdIfMissing('bulletin_1', 'Bulletin de demain', 'info', 'string', array('order' => $order++));
+
+        /* --- Le jour même. Les prévisions J+1 à J+7 commencent à demain : le
+         * « 0 » suit la convention de bulletin_0, et le numéro reste au
+         * milieu comme pour les autres jours. Ce sont les valeurs du bulletin
+         * du matin, publiées pour que les scénarios puissent s'en servir aussi.
+         * Le minimum n'est pas toujours connu — l'IRM le retire en cours de
+         * journée — et la commande garde alors sa dernière valeur. --- */
+        $this->addCmdIfMissing('temperature_0_min', 'Température min du jour', 'info', 'numeric', array(
+            'order' => $order++, 'unite' => '°C', 'generic' => 'WEATHER_TEMPERATURE_MIN',
+        ));
+        $this->addCmdIfMissing('temperature_0_max', 'Température max du jour', 'info', 'numeric', array(
+            'order' => $order++, 'unite' => '°C', 'generic' => 'WEATHER_TEMPERATURE_MAX',
+        ));
+        $this->addCmdIfMissing('condition_0', 'Conditions du jour', 'info', 'string', array('order' => $order++));
+        $this->addCmdIfMissing('condition_id_0', 'Code conditions du jour', 'info', 'numeric', array('order' => $order++));
+        $this->addCmdIfMissing('rain_chance_0', 'Risque de pluie du jour', 'info', 'numeric', array(
+            'order' => $order++, 'unite' => '%',
+        ));
 
         /* --- Prévisions journalières. Les types génériques du coeur s'arrêtent
          * à J+4 : au-delà, les commandes existent et fonctionnent, elles ne sont
@@ -616,6 +774,14 @@ class meteobelgiqueirm extends eqLogic {
             'alert_message'   => self::ALERT_MESSAGE_DEFAULT,
             'alert_on_end'      => 0,
             'alert_on_upcoming' => 0,
+            /* Le bulletin naît éteint : l'activer est un choix. Les autres
+             * réglages sont posés pour que le formulaire s'ouvre sur des
+             * valeurs utilisables, pas sur des champs vides. */
+            'bulletin_enable'     => 0,
+            'bulletin_time'       => self::BULLETIN_TIME_DEFAULT,
+            'bulletin_title'      => self::BULLETIN_TITLE_DEFAULT,
+            'bulletin_message'    => self::BULLETIN_MESSAGE_DEFAULT,
+            'bulletin_background' => 0,
         ) as $key => $default) {
             if ($this->getConfiguration($key, '') === '') {
                 $this->setConfiguration($key, $default);
@@ -717,6 +883,11 @@ class meteobelgiqueirm extends eqLogic {
         $ww = self::describeWw(isset($obs['ww']) ? $obs['ww'] : null, isset($obs['day_night']) ? $obs['day_night'] : 'd');
         $this->publishCmd('condition', $ww[0], $when);
         $this->publishCmd('condition_id', $ww[1], $when);
+        $this->publishCmd('icon_mdi', self::mdiIcon(
+            isset($obs['ww']) ? $obs['ww'] : null,
+            isset($obs['day_night']) ? $obs['day_night'] : 'd',
+            isset($cur['wind_speed']) ? $cur['wind_speed'] : null
+        ), $when);
 
         $this->publishCmd('pressure', isset($cur['pressure']) ? $cur['pressure'] : null, $when);
         $this->publishCmd('wind_speed', isset($cur['wind_speed']) ? $cur['wind_speed'] : null, $when);
@@ -765,6 +936,19 @@ class meteobelgiqueirm extends eqLogic {
         $this->publishCmd('bulletin_0', isset($today['text']) ? $today['text'] : '', $when);
         $tomorrow = $this->dayAt($_model, 1);
         $this->publishCmd('bulletin_1', isset($tomorrow['text']) ? $tomorrow['text'] : '', $when);
+
+        /* --- Le jour même. Une valeur inconnue est publiée vide, et
+         * publishCmd garde alors la précédente : le minimum du matin reste
+         * affiché l'après-midi, quand l'IRM ne le fournit plus. --- */
+        $day0 = $this->todayAt($_model, $now);
+        $this->publishCmd('temperature_0_min', $day0['tmin'], $when);
+        $this->publishCmd('temperature_0_max', $day0['tmax'], $when);
+        if ($day0['ww'] !== null) {
+            $dw0 = self::describeWw($day0['ww'], 'd');
+            $this->publishCmd('condition_0', $dw0[0], $when);
+            $this->publishCmd('condition_id_0', $dw0[1], $when);
+        }
+        $this->publishCmd('rain_chance_0', $day0['rain_chance'], $when);
 
         /* --- Prévisions journalières --- */
         for ($i = 1; $i <= 7; $i++) {
@@ -825,11 +1009,12 @@ class meteobelgiqueirm extends eqLogic {
     private function publishCmd($_logicalId, $_value, $_when = null) {
         if ($_value === null || $_value === '') {
             /* Ne jamais remplacer une valeur connue par du vide : une lecture
-             * en échec ne doit pas effacer ce que l'on savait. */
-            $cmd = $this->getCmd(null, $_logicalId);
-            if (is_object($cmd) && $cmd->execCmd() !== '' && $cmd->execCmd() !== null) {
-                return;
-            }
+             * en échec ne doit pas effacer ce que l'on savait. Et ne rien
+             * publier non plus sur une commande encore vide : le coeur
+             * convertit le vide d'une commande numérique en 0, et une
+             * « Température min du jour » créée l'après-midi, quand l'IRM ne
+             * donne plus le minimum, afficherait 0 °C jusqu'au lendemain. */
+            return;
         }
         $this->checkAndUpdateCmd($_logicalId, $_value, $_when);
     }
@@ -1113,6 +1298,17 @@ class meteobelgiqueirm extends eqLogic {
                 $out[$date] = array(
                     'date' => $date, 'tmin' => null, 'tmax' => null, 'ww' => null,
                     'rain_chance' => null, 'text' => '', 'sunrise' => null, 'sunset' => null,
+                    /*
+                     * Le bloc JOUR seul, sans la fusion avec la nuit. Pour
+                     * demain et au-delà, c'est la même chose ; pour aujourd'hui,
+                     * non : à midi, l'IRM range après la journée un bloc
+                     * « Cette nuit » dont le minimum est celui de la nuit qui
+                     * vient, et dont le risque de pluie écrase celui de la
+                     * journée. Le bulletin du matin parle de la journée : il lit
+                     * ces champs-ci, et laisse les autres à la tuile.
+                     */
+                    'd_tmin' => null, 'd_tmax' => null, 'd_ww' => null, 'd_ww2' => null,
+                    'd_rain' => null, 'd_wind' => null,
                 );
             }
             if ($tmin !== null) { $out[$date]['tmin'] = $tmin; }
@@ -1125,6 +1321,17 @@ class meteobelgiqueirm extends eqLogic {
 
             $chance = self::fnum(isset($f['precipChance']) ? $f['precipChance'] : null);
             if ($chance !== null) { $out[$date]['rain_chance'] = $chance; }
+
+            if (!$isNight) {
+                $out[$date]['d_tmin'] = $tmin;
+                $out[$date]['d_tmax'] = $tmax;
+                $out[$date]['d_ww'] = $ww;
+                /* ww2 décrit la seconde moitié de la période : c'est lui qui
+                 * porte l'averse de l'après-midi quand le matin est beau. */
+                $out[$date]['d_ww2'] = self::fint(isset($f['ww2']) ? $f['ww2'] : null);
+                $out[$date]['d_rain'] = $chance;
+                $out[$date]['d_wind'] = self::fnum(isset($f['wind']['speed']) ? $f['wind']['speed'] : null);
+            }
 
             $text = self::pickLang(isset($f['text']) ? $f['text'] : null);
             if ($text !== '' && $out[$date]['text'] === '') {
@@ -1233,6 +1440,124 @@ class meteobelgiqueirm extends eqLogic {
         }
         $key = $d->format('Y-m-d');
         return isset($_model['days'][$key]) ? $_model['days'][$key] : array();
+    }
+
+    /*
+     * Le jour même, tel que le décrivent le bulletin du matin et les commandes
+     * « du jour ».
+     *
+     * La source est le bloc JOUR de la prévision journalière (d_*). Il existe
+     * du milieu de la nuit jusqu'au soir, mais l'IRM le vide au fil de la
+     * journée : relevé à 12 h 44 le 29/09/2026, son minimum valait null — le
+     * minimum du matin est passé, l'IRM ne le prévoit plus. Le soir, le bloc
+     * disparaît au profit de « Cette nuit ». D'où les replis, tous tirés des
+     * échéances horaires qui restent à venir aujourd'hui :
+     *
+     * - minimum absent : le plus bas des heures restantes AVANT MIDI. À 6 h 30
+     *   c'est le minimum du matin, celui qui décide du gel ; l'après-midi il
+     *   n'y a plus d'heure avant midi, et le minimum reste inconnu plutôt que
+     *   de devenir la fraîcheur du soir, qui n'a rien d'un minimum du jour ;
+     * - maximum absent : le plus haut entre l'observation et les heures
+     *   restantes — un maximum « observé ou prévu », minoré le soir puisque
+     *   les heures passées ne sont plus dans la réponse ;
+     * - risque de pluie absent : le plus haut des heures restantes.
+     *
+     * Les conditions ne se replient pas : le soir, la seule candidate serait
+     * la nuit, et « Ciel dégagé » n'est pas le temps qu'il a fait.
+     *
+     * $_now est un paramètre, et non time(), pour que le jeu d'essai puisse
+     * se placer à 6 h 30.
+     */
+    private function todayAt($_model, $_now) {
+        $tz = new DateTimeZone(self::timezone());
+        $at = new DateTime('@' . (int) $_now);
+        $at->setTimezone($tz);
+        $key = $at->format('Y-m-d');
+
+        $day = isset($_model['days'][$key]) ? $_model['days'][$key] : array();
+        $pick = function ($_field) use ($day) {
+            return isset($day[$_field]) ? $day[$_field] : null;
+        };
+
+        $out = array(
+            'date'        => $key,
+            'tmin'        => $pick('d_tmin'),
+            'tmax'        => $pick('d_tmax'),
+            'ww'          => $pick('d_ww'),
+            'codes'       => array(),
+            'rain_chance' => $pick('d_rain'),
+            'wind'        => $pick('d_wind'),
+            'text'        => isset($day['text']) ? $day['text'] : '',
+        );
+
+        /* Les heures d'aujourd'hui qui ne sont pas encore finies : à 6 h 50,
+         * l'échéance de 6 h décrit encore le temps qu'il fait. */
+        $rest = array();
+        foreach (isset($_model['hourly']) ? $_model['hourly'] : array() as $h) {
+            $hat = new DateTime('@' . (int) $h['ts']);
+            $hat->setTimezone($tz);
+            if ($hat->format('Y-m-d') === $key && $h['ts'] + 3600 > $_now) {
+                $h['local_hour'] = (int) $hat->format('G');
+                $rest[] = $h;
+            }
+        }
+
+        $morning = array();
+        $temps = array();
+        $rains = array();
+        $winds = array();
+        $hourCodes = array();
+        foreach ($rest as $h) {
+            if (isset($h['temp']) && $h['temp'] !== null) {
+                $temps[] = $h['temp'];
+                if ($h['local_hour'] < 12) {
+                    $morning[] = $h['temp'];
+                }
+            }
+            /* La journée s'arrête à 22 h : un brouillard annoncé pour minuit
+             * n'a rien à faire dans le bulletin du matin, et c'est la nuit
+             * suivante qui en parlera. */
+            if ($h['local_hour'] >= self::BULLETIN_DAY_END) {
+                continue;
+            }
+            if (isset($h['rain_chance']) && $h['rain_chance'] !== null) { $rains[] = $h['rain_chance']; }
+            if (isset($h['wind_speed']) && $h['wind_speed'] !== null) { $winds[] = $h['wind_speed']; }
+            if (isset($h['ww']) && $h['ww'] !== null) { $hourCodes[] = (int) $h['ww']; }
+        }
+
+        /* L'observation ne compte pour le maximum que si elle date d'aujourd'hui :
+         * un cache de la veille au soir n'a rien à dire sur la journée. */
+        $fetchedAt = isset($_model['fetched_at']) ? (int) $_model['fetched_at'] : 0;
+        if ($fetchedAt > 0 && isset($_model['obs']['temp']) && $_model['obs']['temp'] !== null) {
+            $fat = new DateTime('@' . $fetchedAt);
+            $fat->setTimezone($tz);
+            if ($fat->format('Y-m-d') === $key) {
+                $temps[] = $_model['obs']['temp'];
+            }
+        }
+
+        if ($out['tmin'] === null && !empty($morning)) { $out['tmin'] = min($morning); }
+        if ($out['tmax'] === null && !empty($temps))   { $out['tmax'] = max($temps); }
+        if ($out['rain_chance'] === null && !empty($rains)) { $out['rain_chance'] = max($rains); }
+
+        /*
+         * Le vent du conseil est le plus fort de la journée, pas celui du bloc
+         * jour seul : l'IRM y donne une moyenne, et un coup de vent de fin
+         * d'après-midi s'y dilue.
+         */
+        if (!empty($winds)) {
+            $out['wind'] = ($out['wind'] === null) ? max($winds) : max($out['wind'], max($winds));
+        }
+
+        /* Tous les codes du jour, pour les conseils : l'averse de 16 h compte
+         * autant que le ciel du matin. */
+        $codes = array();
+        foreach (array($pick('d_ww'), $pick('d_ww2')) as $c) {
+            if ($c !== null) { $codes[] = (int) $c; }
+        }
+        $out['codes'] = array_values(array_unique(array_merge($codes, $hourCodes)));
+
+        return $out;
     }
 
     /*
@@ -1653,14 +1978,35 @@ class meteobelgiqueirm extends eqLogic {
      * partir : chacune est tentée séparément.
      */
     public function runAlertCmds($_message) {
-        $ids = array_filter(array_map('trim', explode(',', (string) $this->getConfiguration('alert_cmds', ''))));
+        return $this->runActionList(
+            'alert_cmds',
+            __('Alerte météo', __FILE__) . ' — ' . $this->cityName(),
+            $_message,
+            false,
+            __('aucune action choisie, l\'alerte n\'a été envoyée nulle part.', __FILE__),
+            __('alerte envoyée à %d action(s).', __FILE__)
+        );
+    }
+
+    /*
+     * Le moteur commun aux alertes et au bulletin : une liste d'identifiants
+     * de commandes, dans le champ de configuration $_key, qui reçoivent chacune
+     * le même titre et le même message. Les deux phrases de journal viennent
+     * de l'appelant, pour qu'on sache lequel des deux a parlé.
+     *
+     * $_background confie chaque action au coeur, qui la joue dans un autre
+     * processus (scenarioExpression, option « en parallèle » des scénarios) :
+     * une notification lente ou une synthèse vocale de vingt secondes ne
+     * retient plus le cron des autres communes. Le prix est connu : on ne sait
+     * plus si l'action a réussi, seulement qu'elle est partie.
+     */
+    private function runActionList($_key, $_title, $_message, $_background, $_noneText, $_sentText) {
+        $ids = array_filter(array_map('trim', explode(',', (string) $this->getConfiguration($_key, ''))));
         if (empty($ids)) {
-            log::add(__CLASS__, 'warning', $this->getHumanName() . ' : '
-                . __('aucune action choisie, l\'alerte n\'a été envoyée nulle part.', __FILE__));
+            log::add(__CLASS__, 'warning', $this->getHumanName() . ' : ' . $_noneText);
             return 0;
         }
 
-        $title = __('Alerte météo', __FILE__) . ' — ' . $this->cityName();
         $sent = 0;
 
         foreach ($ids as $id) {
@@ -1668,11 +2014,18 @@ class meteobelgiqueirm extends eqLogic {
                 /* Le sélecteur du coeur rend « #42# » ; la valeur stockée est
                  * nettoyée, mais un ancien enregistrement peut encore porter les
                  * dièses. */
-                $cmd = cmd::byId(str_replace('#', '', $id));
+                $cleanId = str_replace('#', '', $id);
+                $cmd = cmd::byId($cleanId);
                 if (!is_object($cmd)) {
                     throw new Exception(__('commande introuvable', __FILE__));
                 }
-                $cmd->execCmd(array('title' => $title, 'message' => $_message));
+                if ($_background) {
+                    scenarioExpression::createAndExec('action', '#' . $cleanId . '#', array(
+                        'title' => $_title, 'message' => $_message, 'background' => 1,
+                    ));
+                } else {
+                    $cmd->execCmd(array('title' => $_title, 'message' => $_message));
+                }
                 $sent++;
             } catch (Throwable $e) {
                 log::add(__CLASS__, 'error', $this->getHumanName() . ' : '
@@ -1685,7 +2038,7 @@ class meteobelgiqueirm extends eqLogic {
              * crée tout seul un message dans le centre de notifications, et la
              * cloche sonnerait en double. */
             log::add(__CLASS__, 'info', $this->getHumanName() . ' : '
-                . sprintf(__('alerte envoyée à %d action(s).', __FILE__), $sent) . ' ' . $_message);
+                . sprintf($_sentText, $sent) . ' ' . $_message);
         }
         return $sent;
     }
@@ -1707,6 +2060,314 @@ class meteobelgiqueirm extends eqLogic {
             }
         }
         return $_slug;
+    }
+
+    /* ==================================================== BULLETIN DU MATIN */
+
+    /*
+     * Chaque jour à l'heure choisie, un message court — « 12°C - 21°C |
+     * Prenez un parapluie » — envoyé aux mêmes sortes d'actions que les
+     * alertes. Il remplace une automatisation Home Assistant, et en reprend
+     * l'heure, le format et les conseils.
+     *
+     * Toute la difficulté est de l'envoyer UNE fois. Le cron passe toutes les
+     * dix minutes : on mémorise donc la date du dernier jour traité, dans le
+     * cache de l'équipement — celui des alertes, que le coeur sauvegarde à
+     * l'arrêt et restaure au démarrage. Un jour est « traité » quand le
+     * bulletin est parti, mais aussi quand la condition l'a retenu : sans cela,
+     * la condition serait réévaluée toutes les dix minutes pendant deux heures,
+     * et quelqu'un qui rentre à 8 h 20 recevrait le bulletin de 6 h 30.
+     */
+
+    /*
+     * La date du créneau d'envoi en cours, ou null s'il n'y en a pas.
+     *
+     * Le créneau court de l'heure choisie à deux heures plus tard. On regarde
+     * aussi celui de la veille : un bulletin réglé à 23 h 30 et manqué doit
+     * pouvoir partir à 0 h 20, et « aujourd'hui » a changé entre-temps.
+     */
+    public function bulletinSlot($_now) {
+        $time = trim((string) $this->getConfiguration('bulletin_time', self::BULLETIN_TIME_DEFAULT));
+        if (!preg_match('/^([01]?\d|2[0-3]):([0-5]\d)$/', $time, $m)) {
+            return null;
+        }
+        $days = self::bulletinDays($this->getConfiguration('bulletin_days', ''));
+
+        $tz = new DateTimeZone(self::timezone());
+        $now = new DateTime('@' . (int) $_now);
+        $now->setTimezone($tz);
+
+        foreach (array(0, -1) as $offset) {
+            $target = new DateTime($now->format('Y-m-d'), $tz);
+            if ($offset < 0) {
+                $target->modify('-1 day');
+            }
+            if (!in_array((int) $target->format('N'), $days, true)) {
+                continue;
+            }
+            /* setTime et non un timestamp + secondes : le jour du changement
+             * d'heure compte 23 ou 25 heures. */
+            $target->setTime((int) $m[1], (int) $m[2], 0);
+            $delta = (int) $_now - $target->getTimestamp();
+            if ($delta >= 0 && $delta <= self::BULLETIN_GRACE) {
+                return $target->format('Y-m-d');
+            }
+        }
+        return null;
+    }
+
+    /*
+     * Jours d'envoi, en numéros ISO (1 = lundi). Le champ vide veut dire
+     * « tous les jours » : c'est l'état des équipements créés avant que les
+     * jours existent, et il ne doit pas les rendre muets. « 0 » veut dire
+     * « aucun » — il faut bien pouvoir tout décocher.
+     */
+    public static function bulletinDays($_value) {
+        $value = trim((string) $_value);
+        if ($value === '') {
+            return array(1, 2, 3, 4, 5, 6, 7);
+        }
+        $out = array();
+        foreach (str_split($value) as $c) {
+            if ($c >= '1' && $c <= '7' && !in_array((int) $c, $out, true)) {
+                $out[] = (int) $c;
+            }
+        }
+        return $out;
+    }
+
+    /*
+     * La condition facultative, évaluée par le coeur : vrai, faux, ou null
+     * quand elle n'est pas calculable.
+     *
+     * Seuls un booléen et un nombre font foi. Une expression que le coeur ne
+     * sait pas calculer lui revient sous forme de texte, les valeurs des
+     * commandes déjà substituées — « 1 == » — et ce texte non vide passerait
+     * pour vrai. Même règle que les conditions du plugin thermostatbe.
+     *
+     * Le choix pour « non calculable » est de NE PAS envoyer : la condition
+     * existe pour taire le bulletin quand la maison est vide, et une commande
+     * de présence supprimée ne doit pas se mettre à réveiller un téléphone
+     * en vacances. Le journal le dit, une fois par jour.
+     */
+    public function bulletinCondition() {
+        $expression = trim((string) $this->getConfiguration('bulletin_condition', ''));
+        if ($expression === '') {
+            return true;
+        }
+        try {
+            $result = jeedom::evaluateExpression($expression);
+        } catch (Throwable $e) {
+            $result = null;
+        }
+        if (is_bool($result)) {
+            return $result;
+        }
+        if (is_numeric($result)) {
+            return ((float) $result) != 0;
+        }
+        return null;
+    }
+
+    /*
+     * Envoie le bulletin si son heure est venue. Appelée par cron10, après la
+     * lecture. $_now n'existe que pour le jeu d'essai.
+     */
+    public function checkBulletin($_now = null) {
+        if ((int) $this->getConfiguration('bulletin_enable', 0) !== 1) {
+            return false;
+        }
+        $now = ($_now === null) ? time() : (int) $_now;
+        $slot = $this->bulletinSlot($now);
+        if ($slot === null || $this->getCache('bulletin_sent', '') === $slot) {
+            return false;
+        }
+
+        /*
+         * Sans prévision du jour, on n'envoie pas « °C - °C | Journée agréable
+         * en perspective » : c'est faux, et rien ne le signale. On retente au
+         * passage suivant — l'IRM peut revenir dans le créneau — et le journal
+         * le dit une seule fois par jour.
+         */
+        $bulletin = $this->composeBulletin($this->getForecast(), $now);
+        if ($bulletin === null) {
+            if ($this->getCache('bulletin_nodata', '') !== $slot) {
+                $this->setCache('bulletin_nodata', $slot);
+                log::add(__CLASS__, 'warning', $this->getHumanName() . ' : '
+                    . __('bulletin du matin retardé : aucune prévision du jour en mémoire.', __FILE__));
+            }
+            return false;
+        }
+
+        $condition = $this->bulletinCondition();
+
+        /* Marqué AVANT d'être joué, comme les rappels de hygeabe : une action
+         * qui meurt sur une erreur fatale ne doit pas faire repartir le
+         * bulletin toutes les dix minutes pendant deux heures. */
+        $this->setCache('bulletin_sent', $slot);
+
+        if ($condition === null) {
+            log::add(__CLASS__, 'warning', $this->getHumanName() . ' : '
+                . __('condition du bulletin impossible à évaluer, bulletin non envoyé :', __FILE__) . ' '
+                . jeedom::toHumanReadable($this->getConfiguration('bulletin_condition', '')));
+            return false;
+        }
+        if ($condition === false) {
+            log::add(__CLASS__, 'info', $this->getHumanName() . ' : '
+                . __('condition du bulletin fausse, bulletin non envoyé aujourd\'hui.', __FILE__));
+            return false;
+        }
+
+        return $this->runActionList(
+            'bulletin_cmds',
+            $bulletin['title'],
+            $bulletin['message'],
+            (int) $this->getConfiguration('bulletin_background', 0) === 1,
+            __('aucune action choisie, le bulletin n\'a été envoyé nulle part.', __FILE__),
+            __('bulletin envoyé à %d action(s).', __FILE__)
+        ) > 0;
+    }
+
+    /*
+     * Enregistrer ne doit pas faire partir le bulletin d'un créneau déjà
+     * entamé : la fenêtre de deux heures est là pour une box éteinte, pas pour
+     * un bulletin qu'on vient d'activer à 7 h 10 — il partirait au passage
+     * suivant, sans que personne l'ait demandé. Le créneau en cours est donc
+     * marqué comme traité, sans rien envoyer. Le bouton « Tester » est là pour
+     * voir le résultat tout de suite.
+     */
+    private function settleBulletin() {
+        if ((int) $this->getConfiguration('bulletin_enable', 0) !== 1) {
+            return;
+        }
+        $slot = $this->bulletinSlot(time());
+        if ($slot !== null) {
+            $this->setCache('bulletin_sent', $slot);
+        }
+    }
+
+    /*
+     * Titre et message, balises remplacées. Null quand on ne sait rien du jour
+     * — ni maximum, ni conditions : c'est la marque d'un cache vide ou d'une
+     * prévision d'une autre journée.
+     */
+    public function composeBulletin($_model, $_now) {
+        if (empty($_model)) {
+            return null;
+        }
+        $today = $this->todayAt($_model, $_now);
+        if ($today['tmax'] === null && $today['ww'] === null && empty($today['codes'])) {
+            return null;
+        }
+
+        $advice = self::bulletinAdvice($today['tmin'], $today['tmax'], $today['wind'], $today['codes']);
+        $condition = ($today['ww'] !== null) ? self::describeWw($today['ww'], 'd') : array('');
+
+        $tags = array(
+            '#min#'       => self::formatNumber($today['tmin']),
+            '#max#'       => self::formatNumber($today['tmax']),
+            '#conditions#' => $condition[0],
+            '#conseils#'  => implode(' | ', $advice),
+            '#bulletin#'  => $today['text'],
+            '#commune#'   => $this->cityName(),
+            '#vent#'      => self::formatNumber($today['wind']),
+            '#pluie#'     => self::formatNumber($today['rain_chance']),
+        );
+
+        $title = trim((string) $this->getConfiguration('bulletin_title', ''));
+        if ($title === '') {
+            $title = __(self::BULLETIN_TITLE_DEFAULT, __FILE__);
+        }
+        $message = trim((string) $this->getConfiguration('bulletin_message', ''));
+        if ($message === '') {
+            $message = __(self::BULLETIN_MESSAGE_DEFAULT, __FILE__);
+        }
+
+        return array(
+            'title'   => str_replace(array_keys($tags), array_values($tags), $title),
+            'message' => str_replace(array_keys($tags), array_values($tags), $message),
+            'advice'  => $advice,
+        );
+    }
+
+    /*
+     * Les conseils du jour, dans l'ordre de l'automatisation Home Assistant.
+     * Fonction pure : elle ne lit que ses arguments, et c'est ce qui permet de
+     * la tester case par case.
+     *
+     * Un minimum inconnu n'est pas un minimum doux : ni le gel ni la veste ne
+     * sont évalués, plutôt que de taire un gel faute de donnée en affirmant
+     * implicitement qu'il fera bon. Le maximum et le vent suivent la même
+     * règle.
+     */
+    public static function bulletinAdvice($_tmin, $_tmax, $_wind, $_codes) {
+        $codes = array();
+        foreach ((array) $_codes as $c) {
+            if ($c !== null && $c !== '') { $codes[] = (int) $c; }
+        }
+        $has = function ($_family) use ($codes) {
+            return count(array_intersect($codes, $_family)) > 0;
+        };
+
+        $out = array();
+        if ($has(self::ADVICE_RAIN_CODES)) {
+            $out[] = __('Prenez un parapluie', __FILE__);
+        }
+        if ($_tmin !== null && $_tmin !== '') {
+            if ((float) $_tmin < self::ADVICE_FROST) {
+                $out[] = __('Couvrez-vous bien, risque de gel', __FILE__);
+            } elseif ((float) $_tmin < self::ADVICE_COLD) {
+                $out[] = __('Prévoyez une veste chaude', __FILE__);
+            }
+        }
+        if ($_tmax !== null && $_tmax !== '' && (float) $_tmax > self::ADVICE_HOT) {
+            $out[] = __('Beau et chaud, pensez à vous hydrater', __FILE__);
+        }
+        if ($_wind !== null && $_wind !== '' && (float) $_wind > self::ADVICE_WIND) {
+            $out[] = __('Vent fort, sécurisez la terrasse', __FILE__);
+        }
+        if ($has(self::ADVICE_SNOW_CODES)) {
+            $out[] = __('Neige prévue, prudence sur la route', __FILE__);
+        }
+        if ($has(self::ADVICE_FOG_CODES)) {
+            $out[] = __('Brouillard, roulez prudemment', __FILE__);
+        }
+        if (empty($out)) {
+            $out[] = __('Journée agréable en perspective', __FILE__);
+        }
+        return $out;
+    }
+
+    /*
+     * Essai depuis l'onglet Équipement : le vrai bulletin d'aujourd'hui, avec
+     * la configuration ENREGISTRÉE, titre préfixé pour qu'on ne le prenne pas
+     * pour l'envoi du jour. Il part toujours au premier plan — un essai qui ne
+     * saurait pas dire si l'action a réussi n'essaierait rien — et ne touche
+     * pas à la mémoire d'envoi. La condition n'est pas appliquée, mais son
+     * résultat du moment est rendu : c'est le seul moyen de la vérifier.
+     */
+    public function testBulletin() {
+        $bulletin = $this->composeBulletin($this->getForecast(), time());
+        if ($bulletin === null) {
+            throw new Exception(__('Aucune prévision du jour en mémoire : relevez la météo, puis réessayez.', __FILE__));
+        }
+        $expression = trim((string) $this->getConfiguration('bulletin_condition', ''));
+        $condition = $this->bulletinCondition();
+
+        $sent = $this->runActionList(
+            'bulletin_cmds',
+            __('Essai', __FILE__) . ' — ' . $bulletin['title'],
+            $bulletin['message'],
+            false,
+            __('aucune action choisie, le bulletin n\'a été envoyé nulle part.', __FILE__),
+            __('bulletin envoyé à %d action(s).', __FILE__)
+        );
+
+        return array(
+            'sent'      => $sent,
+            'message'   => $bulletin['message'],
+            'condition' => ($expression === '') ? 'none' : ($condition === null ? 'error' : ($condition ? 'true' : 'false')),
+        );
     }
 
     /* Nom de la commune : celui renvoyé par l'IRM, sinon celui de la liste
@@ -2021,6 +2682,42 @@ class meteobelgiqueirm extends eqLogic {
         $key = ($_dayNight === 'n' && isset($entry['n'])) ? 'n' : 'd';
         $value = $entry[$key];
         return array(__($value[0], __FILE__), $value[1], $value[2]);
+    }
+
+    /*
+     * Nom d'icône Material Design Icons des conditions données. Chaîne vide
+     * quand le code manque : publishCmd garde alors l'icône précédente, plutôt
+     * que d'afficher un ciel couvert inventé pendant une panne. Un code
+     * présent mais inconnu, lui, reçoit MDI_UNKNOWN.
+     */
+    public static function mdiIcon($_ww, $_dayNight = 'd', $_wind = null) {
+        $ww = self::fint($_ww);
+        if ($ww === null) {
+            return '';
+        }
+        if (!isset(self::MDI[$ww])) {
+            return self::MDI_UNKNOWN;
+        }
+        $wind = self::fnum($_wind);
+        if ($wind !== null && $wind >= self::MDI_WINDY && in_array($ww, self::MDI_DRY_CODES, true)) {
+            /* Sous les nuages, la variante qui dessine aussi le nuage. */
+            return ($ww >= 14) ? 'mdi:weather-windy-variant' : 'mdi:weather-windy';
+        }
+        $entry = self::MDI[$ww];
+        return ($_dayNight === 'n' && isset($entry['n'])) ? $entry['n'] : $entry['d'];
+    }
+
+    /*
+     * Un nombre pour un message : arrondi à l'entier, vide s'il est inconnu.
+     * L'IRM donne des degrés entiers ; les replis horaires aussi. « -0 » ne
+     * doit pas apparaître.
+     */
+    public static function formatNumber($_value) {
+        $v = self::fnum($_value);
+        if ($v === null) {
+            return '';
+        }
+        return (string) (int) round($v);
     }
 
     public static function timezone() {

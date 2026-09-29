@@ -48,6 +48,39 @@ Forecast: `temperature_1_min` through `temperature_7_min` and the matching
 `condition_id_1..4`, `rain_chance_1..3`, the hourly `*_h1..h3`, and
 `bulletin_0` / `bulletin_1` carrying RMI's written bulletin.
 
+Same day: forecasts `_1` to `_7` start **tomorrow**; today has
+`temperature_0_min`, `temperature_0_max`, `condition_0`, `condition_id_0` and
+`rain_chance_0`, read from RMI's *daytime* block. RMI drops today's minimum
+around midday (observed: absent at 12:44); before noon the lowest remaining
+hourly forecast replaces it, afterwards it is unknown and the command keeps its
+last value. When the daytime block is gone (evening), the maximum and chance of
+rain fall back on the remaining hours.
+
+`icon_mdi` carries a Material Design Icons name for the **current** conditions
+(`mdi:weather-sunny`, `mdi:weather-night`, `mdi:weather-rainy`…), for a display
+outside Jeedom such as a TV. Unknown codes give `mdi:weather-cloudy`; dry
+weather with a mean wind above 50 km/h gives `mdi:weather-windy`.
+
+## Morning bulletin
+
+Disabled by default. Configured in the *Device* tab, next to the warning
+notifications: a sending time (`bulletin_time`, `HH:MM`, default `06:30`),
+weekdays (`bulletin_days`, ISO digits, empty = every day), an optional Jeedom
+condition (`bulletin_condition`), a list of actions (`bulletin_cmds`, same
+selector as warnings), a title (`bulletin_title`, default "Météo du jour") and a
+message (`bulletin_message`, default `#min#°C - #max#°C | #conseils#`). Tags:
+`#min#`, `#max#`, `#conditions#`, `#conseils#` (advice), `#bulletin#`,
+`#commune#`, `#vent#` (km/h), `#pluie#` (%).
+
+It is sent **once a day**: the date is remembered in the device cache. If Jeedom
+was down at the chosen time, it is still sent within two hours, never later.
+A false condition skips the day; a condition that cannot be computed is logged
+and the bulletin is **not** sent. The *Test* button sends today's real bulletin
+right away and shows what the condition is currently worth. Advice follows the
+Home Assistant automation it replaces: umbrella (rain, showers, thunder codes),
+frost (min < 0), warm jacket (min < 5), heat (max > 25), wind (> 40 km/h), snow,
+fog; "Journée agréable en perspective" when none applies.
+
 The tile also carries an **hour-by-hour band** covering the rest of the day —
 hour, weather, temperature, and a bar whose height is the chance of rain. In the
 evening, when fewer than six hours remain, it spills over into the night and the

@@ -209,7 +209,7 @@ $eqLogics = eqLogic::byType($plugin->getId());
 								<div class="col-sm-5">
 									<input type="hidden" class="eqLogicAttr" data-l1key="configuration" data-l2key="alert_cmds">
 									<div id="div_meteobelgiqueirmActions"></div>
-									<a class="btn btn-default btn-sm" id="bt_meteobelgiqueirmAddAction"><i class="fas fa-plus"></i> {{Ajouter une action}}</a>
+									<a class="btn btn-default btn-sm meteobelgiqueirmAddAction" id="bt_meteobelgiqueirmAddAction" data-list="alert"><i class="fas fa-plus"></i> {{Ajouter une action}}</a>
 									<a class="btn btn-default btn-sm" id="bt_meteobelgiqueirmTestAlert"><i class="fas fa-bell"></i> {{Tester}}</a>
 								</div>
 								<div class="col-sm-5">
@@ -244,6 +244,102 @@ $eqLogics = eqLogic::byType($plugin->getId());
 								<label class="col-sm-2 control-label"></label>
 								<div class="col-sm-10">
 									<span class="help-block" style="margin:0;">{{Une même vigilance n'est annoncée qu'une fois, même si elle dure six heures et que le plugin la relit toutes les dix minutes. Vous êtes prévenu à nouveau seulement si elle s'aggrave, ou si un nouveau phénomène apparaît.}}</span>
+								</div>
+							</div>
+						</fieldset>
+					</form>
+				</div>
+
+				<div class="col-lg-12">
+					<form class="form-horizontal">
+						<fieldset>
+							<legend><i class="fas fa-mug-hot"></i> {{Le bulletin du matin}}</legend>
+
+							<div class="form-group">
+								<label class="col-sm-2 control-label">{{Activer}}</label>
+								<div class="col-sm-3">
+									<input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="bulletin_enable" value="1">
+								</div>
+								<div class="col-sm-7">
+									<span class="help-block" style="margin:0;">{{Chaque jour à l'heure choisie, un message court : minimum, maximum et conseils du jour — « 12°C - 21°C | Prenez un parapluie ». Il part une seule fois par jour, même si le plugin repasse toutes les dix minutes.}}</span>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="col-sm-2 control-label">{{Heure d'envoi}}</label>
+								<div class="col-sm-3">
+									<input type="time" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="bulletin_time" placeholder="06:30">
+								</div>
+								<div class="col-sm-7">
+									<span class="help-block" style="margin:0;">{{Le plugin passe toutes les dix minutes : 6 h 35 part à 6 h 40. Si Jeedom était arrêté à l'heure dite, le bulletin part encore dans les deux heures qui suivent, jamais au-delà — une veste conseillée à midi ne sert plus à rien.}}</span>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="col-sm-2 control-label">{{Jours}}</label>
+								<div class="col-sm-10">
+									<!--
+										Un seul champ enregistré, tenu à jour par les cases : vide veut
+										dire « tous les jours ». Sept cases liées chacune à une clé
+										s'ouvriraient décochées sur une commune plus ancienne, et le
+										premier enregistrement couperait le bulletin toute la semaine.
+									-->
+									<input type="hidden" class="eqLogicAttr" data-l1key="configuration" data-l2key="bulletin_days">
+									<label class="checkbox-inline"><input type="checkbox" class="meteobelgiqueirmBulletinDay" data-day="1">{{Lundi}}</label>
+									<label class="checkbox-inline"><input type="checkbox" class="meteobelgiqueirmBulletinDay" data-day="2">{{Mardi}}</label>
+									<label class="checkbox-inline"><input type="checkbox" class="meteobelgiqueirmBulletinDay" data-day="3">{{Mercredi}}</label>
+									<label class="checkbox-inline"><input type="checkbox" class="meteobelgiqueirmBulletinDay" data-day="4">{{Jeudi}}</label>
+									<label class="checkbox-inline"><input type="checkbox" class="meteobelgiqueirmBulletinDay" data-day="5">{{Vendredi}}</label>
+									<label class="checkbox-inline"><input type="checkbox" class="meteobelgiqueirmBulletinDay" data-day="6">{{Samedi}}</label>
+									<label class="checkbox-inline"><input type="checkbox" class="meteobelgiqueirmBulletinDay" data-day="7">{{Dimanche}}</label>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="col-sm-2 control-label">{{Seulement si}}</label>
+								<div class="col-sm-5">
+									<div class="input-group">
+										<input type="text" class="eqLogicAttr form-control roundedLeft" data-l1key="configuration" data-l2key="bulletin_condition" placeholder="#[Maison][Présence][Quelqu'un]# == 1">
+										<span class="input-group-btn">
+											<a class="btn btn-default roundedRight" id="bt_meteobelgiqueirmBulletinCondition" title="{{Insérer une commande info}}"><i class="fas fa-list-alt"></i></a>
+										</span>
+									</div>
+								</div>
+								<div class="col-sm-5">
+									<span class="help-block" style="margin:0;">{{Facultatif. Une condition au format des scénarios, vérifiée à l'heure d'envoi : par exemple « quelqu'un est à la maison ». Fausse, le bulletin est sauté pour la journée. Impossible à calculer — commande supprimée, faute de frappe — il n'est pas envoyé non plus, et le journal le dit : mieux vaut un bulletin manqué qu'un téléphone réveillé en vacances.}}</span>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="col-sm-2 control-label">{{Actions à exécuter}}</label>
+								<div class="col-sm-5">
+									<input type="hidden" class="eqLogicAttr" data-l1key="configuration" data-l2key="bulletin_cmds">
+									<div id="div_meteobelgiqueirmBulletinActions"></div>
+									<a class="btn btn-default btn-sm meteobelgiqueirmAddAction" data-list="bulletin"><i class="fas fa-plus"></i> {{Ajouter une action}}</a>
+									<a class="btn btn-default btn-sm" id="bt_meteobelgiqueirmTestBulletin"><i class="fas fa-paper-plane"></i> {{Tester}}</a>
+									<label class="checkbox-inline" style="margin-left:10px;">
+										<input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="bulletin_background" value="1">{{en parallèle}}
+									</label>
+								</div>
+								<div class="col-sm-5">
+									<span class="help-block" style="margin:0;">{{Les mêmes actions que pour les vigilances : notification, synthèse vocale, affichage sur la télévision. « Tester » envoie tout de suite le vrai bulletin du jour, sans tenir compte de la condition, et dit ce qu'elle vaut en ce moment. « En parallèle » lance chaque action à part, pour qu'une action lente ne retarde pas le relevé des autres communes — au prix de ne plus savoir si elle a réussi.}}</span>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="col-sm-2 control-label">{{Titre}}</label>
+								<div class="col-sm-5">
+									<input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="bulletin_title" placeholder="Météo du jour">
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="col-sm-2 control-label">{{Message}}</label>
+								<div class="col-sm-5">
+									<input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="bulletin_message" placeholder="#min#°C - #max#°C | #conseils#">
+								</div>
+								<div class="col-sm-5">
+									<span class="help-block" style="margin:0;">{{Balises, dans le titre comme dans le message : #min#, #max#, #conditions#, #conseils#, #bulletin# (le bulletin rédigé de l'IRM), #commune#, #vent# (km/h), #pluie# (risque, en %). Une valeur que l'IRM ne donne plus — le minimum, l'après-midi — est remplacée par du vide.}}</span>
 								</div>
 							</div>
 						</fieldset>

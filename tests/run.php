@@ -577,6 +577,314 @@ check('la racine porte l\'identifiant de commande',
 check('aucun innerHTML sur du texte de l\'IRM',
     preg_match('/innerHTML\s*=\s*[^\x27"]*(?:data|_data)\./', $template), 0);
 
+/* ============================================================== CONSEILS */
+section('Conseils du bulletin du matin');
+
+/* Un conseil par cas, dans l'ordre de l'automatisation Home Assistant. */
+function advice($_tmin, $_tmax, $_wind, $_codes) {
+    return implode(' | ', meteobelgiqueirm::bulletinAdvice($_tmin, $_tmax, $_wind, $_codes));
+}
+check('rien à signaler', advice(10, 20, 15, array(0, 1)), 'Journée agréable en perspective');
+check('pluie (18)', advice(10, 20, 15, array(3, 18)), 'Prenez un parapluie');
+check('averses (4)', advice(10, 20, 15, array(4)), 'Prenez un parapluie');
+check('orage (17)', advice(10, 20, 15, array(17)), 'Prenez un parapluie');
+check('gel sous zéro', advice(-2, 6, 10, array(0)), 'Couvrez-vous bien, risque de gel');
+check('zéro pile n\'est pas du gel', advice(0, 6, 10, array(0)), 'Prévoyez une veste chaude');
+check('veste sous cinq degrés', advice(4, 12, 10, array(0)), 'Prévoyez une veste chaude');
+check('cinq pile, pas de veste', advice(5, 12, 10, array(0)), 'Journée agréable en perspective');
+check('chaleur au-delà de 25', advice(15, 26, 10, array(0)), 'Beau et chaud, pensez à vous hydrater');
+check('25 pile n\'est pas chaud', advice(15, 25, 10, array(0)), 'Journée agréable en perspective');
+check('vent au-delà de 40', advice(10, 20, 41, array(0)), 'Vent fort, sécurisez la terrasse');
+check('40 pile n\'est pas fort', advice(10, 20, 40, array(0)), 'Journée agréable en perspective');
+check('neige (23)', advice(1, 3, 10, array(23)), 'Prévoyez une veste chaude | Neige prévue, prudence sur la route');
+/* Pluie et neige mêlées : les deux conseils à la fois. */
+check('pluie et neige mêlées (20)', advice(2, 4, 10, array(20)),
+    'Prenez un parapluie | Prévoyez une veste chaude | Neige prévue, prudence sur la route');
+check('brouillard (25)', advice(8, 15, 5, array(25)), 'Brouillard, roulez prudemment');
+check('brume (26) compte comme brouillard', advice(8, 15, 5, array(26)), 'Brouillard, roulez prudemment');
+check('tout à la fois, dans l\'ordre', advice(-1, 26, 50, array(18, 22, 27)),
+    'Prenez un parapluie | Couvrez-vous bien, risque de gel | Beau et chaud, pensez à vous hydrater'
+    . ' | Vent fort, sécurisez la terrasse | Neige prévue, prudence sur la route | Brouillard, roulez prudemment');
+/* Un minimum inconnu n'est pas un minimum doux : ni gel ni veste. */
+check('minimum inconnu, pas de conseil de froid', advice(null, 12, 10, array(0)), 'Journée agréable en perspective');
+check('codes en chaînes acceptés', advice(10, 20, 15, array('18')), 'Prenez un parapluie');
+
+/* ================================================================ ICÔNES */
+section('Icône Material Design');
+
+check('0 de jour', meteobelgiqueirm::mdiIcon(0, 'd'), 'mdi:weather-sunny');
+check('0 de nuit', meteobelgiqueirm::mdiIcon(0, 'n'), 'mdi:weather-night');
+check('1 de nuit', meteobelgiqueirm::mdiIcon(1, 'n'), 'mdi:weather-night-partly-cloudy');
+check('3 de nuit prend la lune', meteobelgiqueirm::mdiIcon(3, 'n'), 'mdi:weather-night-partly-cloudy');
+check('15 couvert', meteobelgiqueirm::mdiIcon(15, 'd'), 'mdi:weather-cloudy');
+check('16 pluie forte', meteobelgiqueirm::mdiIcon(16, 'd'), 'mdi:weather-pouring');
+check('17 pluie orageuse', meteobelgiqueirm::mdiIcon(17, 'd'), 'mdi:weather-lightning-rainy');
+check('18 pluie de nuit, même icône', meteobelgiqueirm::mdiIcon(18, 'n'), 'mdi:weather-rainy');
+check('20 pluie et neige', meteobelgiqueirm::mdiIcon(20, 'd'), 'mdi:weather-snowy-rainy');
+check('21 verglaçante', meteobelgiqueirm::mdiIcon(21, 'd'), 'mdi:weather-hail');
+check('23 neige', meteobelgiqueirm::mdiIcon(23, 'd'), 'mdi:weather-snowy');
+check('25 brouillard', meteobelgiqueirm::mdiIcon(25, 'd'), 'mdi:weather-fog');
+check('code en chaîne', meteobelgiqueirm::mdiIcon('18', 'd'), 'mdi:weather-rainy');
+check('code inconnu : ciel couvert', meteobelgiqueirm::mdiIcon(99, 'd'), 'mdi:weather-cloudy');
+check('code absent : vide, l\'icône précédente reste', meteobelgiqueirm::mdiIcon(null, 'd'), '');
+check('ciel sec et grand vent', meteobelgiqueirm::mdiIcon(0, 'd', 55), 'mdi:weather-windy');
+check('couvert et grand vent', meteobelgiqueirm::mdiIcon(15, 'd', 55), 'mdi:weather-windy-variant');
+check('sous le seuil, pas de vent', meteobelgiqueirm::mdiIcon(0, 'd', 49), 'mdi:weather-sunny');
+check('la pluie l\'emporte sur le vent', meteobelgiqueirm::mdiIcon(18, 'd', 80), 'mdi:weather-rainy');
+
+/* Chaque code connu de l'IRM a son icône, et c'est bien une icône météo. */
+$complete = true;
+foreach (array_keys(meteobelgiqueirm::WW) as $code) {
+    foreach (array('d', 'n') as $dn) {
+        $icon = meteobelgiqueirm::mdiIcon($code, $dn);
+        if (strpos($icon, 'mdi:weather-') !== 0 || $icon === meteobelgiqueirm::MDI_UNKNOWN && !in_array($code, array(14, 15), true)) {
+            $complete = false;
+            echo '        -> code ' . $code . '/' . $dn . ' : ' . $icon . "\n";
+        }
+    }
+}
+check('les 28 codes connus ont une icône propre', $complete, true);
+check('la table couvre la table des conditions',
+    array_keys(meteobelgiqueirm::MDI), array_keys(meteobelgiqueirm::WW));
+
+/* ======================================================= DONNÉES DU JOUR */
+section('Données du jour');
+
+$tzb = new DateTimeZone('Europe/Brussels');
+$morning = (new DateTime('today 06:30', $tzb))->getTimestamp();
+$todayKey = date('Y-m-d', $morning);
+
+/* Une journée synthétique : le bloc jour de l'IRM, et des échéances horaires
+ * de 6 h à 23 h. */
+function dayModel($_day, $_hours, $_fetched) {
+    global $todayKey, $tzb;
+    $hourly = array();
+    foreach ($_hours as $hour => $h) {
+        $ts = (new DateTime($todayKey . ' ' . sprintf('%02d', $hour) . ':00', $tzb))->getTimestamp();
+        $hourly[] = array_merge(array('ts' => $ts, 'temp' => null, 'ww' => null, 'day_night' => 'd',
+            'rain_chance' => null, 'wind_speed' => null), $h);
+    }
+    return array(
+        'fetched_at' => $_fetched,
+        'city'       => 'Soignies',
+        'obs'        => array('temp' => 9.0, 'ww' => 0, 'day_night' => 'n'),
+        'days'       => array($todayKey => array_merge(array(
+            'date' => $todayKey, 'tmin' => null, 'tmax' => null, 'ww' => null, 'rain_chance' => null,
+            'text' => 'Temps variable.', 'd_tmin' => null, 'd_tmax' => null, 'd_ww' => null,
+            'd_ww2' => null, 'd_rain' => null, 'd_wind' => null), $_day)),
+        'hourly'     => $hourly,
+        'warnings'   => array(),
+    );
+}
+
+$hours = array();
+for ($hh = 6; $hh <= 23; $hh++) {
+    $hours[$hh] = array('temp' => 8.0 + ($hh < 15 ? $hh - 6 : 23 - $hh), 'ww' => 1, 'rain_chance' => 10.0, 'wind_speed' => 15.0);
+}
+$hours[23]['ww'] = 25;           // brouillard à 23 h : hors de la journée
+$hours[16]['ww'] = 18;           // averse à 16 h : dans la journée
+$hours[7]['temp'] = 3.0;         // le minimum du matin
+
+$m = dayModel(array('d_tmin' => 4.0, 'd_tmax' => 17.0, 'd_ww' => 3, 'd_ww2' => 1, 'd_rain' => 40.0, 'd_wind' => 12.0),
+    $hours, $morning - 60);
+$t = invoke($eq, 'todayAt', array($m, $morning));
+check('minimum lu dans le bloc jour', $t['tmin'], 4.0);
+check('maximum lu dans le bloc jour', $t['tmax'], 17.0);
+check('conditions du bloc jour', $t['ww'], 3);
+check('risque de pluie du bloc jour', $t['rain_chance'], 40.0);
+check('l\'averse de 16 h est dans les codes', in_array(18, $t['codes'], true), true);
+check('le brouillard de 23 h n\'y est pas', in_array(25, $t['codes'], true), false);
+check('le vent est le plus fort de la journée', $t['wind'], 15.0);
+check('le bulletin rédigé suit', $t['text'], 'Temps variable.');
+
+/* L'après-midi, l'IRM retire le minimum (relevé réel du 29/09/2026 à 12 h 44). */
+$m = dayModel(array('d_tmin' => null, 'd_tmax' => 17.0, 'd_ww' => 3), $hours, $morning - 60);
+$t = invoke($eq, 'todayAt', array($m, $morning));
+check('minimum absent le matin : repli sur les heures avant midi', $t['tmin'], 3.0);
+$afternoon = $morning + 7 * 3600;   // 13 h 30
+$t = invoke($eq, 'todayAt', array($m, $afternoon));
+check('minimum absent l\'après-midi : inconnu', $t['tmin'], null);
+
+/* Le soir, le bloc jour a disparu. */
+$m = dayModel(array(), $hours, $morning - 60);
+$t = invoke($eq, 'todayAt', array($m, $morning));
+check('maximum absent : repli sur le plus chaud prévu ou observé', $t['tmax'], 16.0);
+check('risque absent : repli sur les heures', $t['rain_chance'], 10.0);
+check('conditions absentes : pas de repli', $t['ww'], null);
+
+/* Sur la réponse réelle de midi : le bloc jour est lu, le minimum manque. */
+$raw = json_decode(file_get_contents(__DIR__ . '/fixtures/forecast_25121_midi.json'), true);
+/* La réponse nomme le jour même par son nom anglais (« Tuesday ») : on le
+ * recale sur le jour du lancement, sinon le test ne passerait que le mardi. */
+$raw['for']['daily'][0]['dayName']['en'] = date('l');
+$realDays = invoke($eq, 'parseDaily', array($raw));
+$first = isset($realDays[date('Y-m-d')]) ? $realDays[date('Y-m-d')] : array();
+check('réponse de midi : maximum du bloc jour', $first['d_tmax'], 27.0);
+check('réponse de midi : minimum du bloc jour absent', $first['d_tmin'], null);
+/* La fusion historique, elle, prend le minimum de la nuit qui vient : c'est
+ * pourquoi le bulletin ne la lit pas. */
+check('réponse de midi : la tuile garde le minimum de la nuit', $first['tmin'], 20.0);
+
+/* ================================================= ENVOI DU BULLETIN */
+section('Bulletin du matin : envoi unique');
+
+$b = new meteobelgiqueirm();
+$b->preSave();
+check('le bulletin naît désactivé', (int) $b->getConfiguration('bulletin_enable'), 0);
+check('heure par défaut', $b->getConfiguration('bulletin_time'), '06:30');
+check('titre par défaut', $b->getConfiguration('bulletin_title'), 'Météo du jour');
+check('message par défaut', $b->getConfiguration('bulletin_message'), '#min#°C - #max#°C | #conseils#');
+
+$b->configuration['bulletin_cmds'] = '201,202';
+$b->configuration['ins'] = '55040';
+$model = dayModel(array('d_tmin' => 12.0, 'd_tmax' => 20.0, 'd_ww' => 18, 'd_rain' => 80.0, 'd_wind' => 20.0),
+    $hours, $morning - 60);
+invoke($b, 'saveForecast', array($model));
+
+function bulletinAt($_eq, $_now) {
+    cmd::$sent = array();
+    scenarioExpression::$launched = array();
+    $_eq->checkBulletin($_now);
+    return cmd::$sent;
+}
+
+check('désactivé, rien ne part', count(bulletinAt($b, $morning)), 0);
+$b->configuration['bulletin_enable'] = 1;
+check('avant l\'heure, rien', count(bulletinAt($b, $morning - 600)), 0);
+$sent = bulletinAt($b, $morning);
+check('à l\'heure, il part vers les deux actions', count($sent), 2);
+check('titre', $sent[0]['title'], 'Météo du jour');
+check('message au format Home Assistant', $sent[0]['message'], '12°C - 20°C | Prenez un parapluie');
+check('dix minutes plus tard, rien de plus', count(bulletinAt($b, $morning + 600)), 0);
+check('une heure plus tard, rien de plus', count(bulletinAt($b, $morning + 3600)), 0);
+/* Un redémarrage relit la mémoire : c'est le même cache que les alertes. */
+$restarted = new meteobelgiqueirm();
+$restarted->configuration = $b->configuration;
+$restarted->store = $b->store;
+check('après un redémarrage, toujours rien', count(bulletinAt($restarted, $morning + 4200)), 0);
+
+/* Rattrapage : Jeedom éteint à 6 h 30, rallumé à 8 h. */
+$late = new meteobelgiqueirm();
+$late->configuration = $b->configuration;
+invoke($late, 'saveForecast', array($model));
+check('rallumé 1 h 30 après : il part', count(bulletinAt($late, $morning + 5400)), 2);
+$later = new meteobelgiqueirm();
+$later->configuration = $b->configuration;
+invoke($later, 'saveForecast', array($model));
+check('rallumé 2 h 10 après : trop tard, il se tait', count(bulletinAt($later, $morning + 7800)), 0);
+check('fenêtre de deux heures, bornes comprises', count(bulletinAt($later, $morning + 7200)), 2);
+
+/* Le lendemain, il repart. */
+$tomorrowMorning = (new DateTime('tomorrow 06:30', $tzb))->getTimestamp();
+$nextModel = $model;
+$tomorrowKey = date('Y-m-d', $tomorrowMorning);
+$nextModel['days'] = array($tomorrowKey => array_merge($model['days'][$todayKey], array('date' => $tomorrowKey)));
+$nextModel['hourly'] = array();
+invoke($b, 'saveForecast', array($nextModel));
+check('le lendemain, il repart', count(bulletinAt($b, $tomorrowMorning)), 2);
+invoke($b, 'saveForecast', array($model));
+
+/* Jours de la semaine. */
+check('jours : vide veut dire tous', meteobelgiqueirm::bulletinDays(''), array(1, 2, 3, 4, 5, 6, 7));
+check('jours : 0 veut dire aucun', meteobelgiqueirm::bulletinDays('0'), array());
+check('jours : semaine', meteobelgiqueirm::bulletinDays('12345'), array(1, 2, 3, 4, 5));
+$weekday = (int) date('N', $morning);
+$off = new meteobelgiqueirm();
+$off->configuration = array_merge($b->configuration, array('bulletin_days' => (string) ($weekday % 7 + 1)));
+invoke($off, 'saveForecast', array($model));
+check('jour non coché : rien', count(bulletinAt($off, $morning)), 0);
+$off->configuration['bulletin_days'] = (string) $weekday;
+check('jour coché : il part', count(bulletinAt($off, $morning)), 2);
+
+/* Condition. */
+$c = new meteobelgiqueirm();
+$c->configuration = array_merge($b->configuration, array('bulletin_condition' => '#5433# == 1'));
+invoke($c, 'saveForecast', array($model));
+jeedom::$results = array('#5433# == 1' => true);
+check('condition vraie : il part', count(bulletinAt($c, $morning)), 2);
+
+$c = new meteobelgiqueirm();
+$c->configuration = array_merge($b->configuration, array('bulletin_condition' => '#5433# == 1'));
+invoke($c, 'saveForecast', array($model));
+jeedom::$results = array('#5433# == 1' => false);
+check('condition fausse : rien', count(bulletinAt($c, $morning)), 0);
+/* Fausse à 6 h 30, vraie à 7 h 30 : on ne rattrape pas, le jour est traité. */
+jeedom::$results = array('#5433# == 1' => true);
+check('devenue vraie plus tard : toujours rien', count(bulletinAt($c, $morning + 3600)), 0);
+
+$c = new meteobelgiqueirm();
+$c->configuration = array_merge($b->configuration, array('bulletin_condition' => '#5433# == 1'));
+invoke($c, 'saveForecast', array($model));
+jeedom::$results = array('#5433# == 1' => 1);
+check('condition numérique 1 : il part', count(bulletinAt($c, $morning)), 2);
+
+$c = new meteobelgiqueirm();
+$c->configuration = array_merge($b->configuration, array('bulletin_condition' => '#5433# == 1'));
+invoke($c, 'saveForecast', array($model));
+jeedom::$results = array();   // non calculable : le coeur rend le texte
+log::$lines = array();
+check('condition non calculable : rien', count(bulletinAt($c, $morning)), 0);
+$logged = false;
+foreach (log::$lines as $line) {
+    if (strpos($line, 'warning') === 0 && strpos($line, 'impossible à évaluer') !== false) { $logged = true; }
+}
+check('et le journal le signale', $logged, true);
+log::$lines = array();
+bulletinAt($c, $morning + 600);
+check('une seule fois par jour', count(log::$lines), 0);
+jeedom::$results = array();
+
+/* Sans prévision du jour, on ne raconte pas n'importe quoi, et on retente. */
+$empty = new meteobelgiqueirm();
+$empty->configuration = $b->configuration;
+/* Le cache du stub est commun à tous les équipements du jeu d'essai (même
+ * identifiant) : on le vide explicitement. */
+invoke($empty, 'clearForecast');
+check('sans prévision : rien', count(bulletinAt($empty, $morning)), 0);
+invoke($empty, 'saveForecast', array($model));
+check('la prévision revenue, il part dans le créneau', count(bulletinAt($empty, $morning + 600)), 2);
+
+/* Balises et minimum absent. */
+$tags = new meteobelgiqueirm();
+$tags->configuration = array_merge($b->configuration, array(
+    'bulletin_title' => 'Météo à #commune#',
+    'bulletin_message' => '#min#|#max#|#conditions#|#vent#|#pluie#|#bulletin#',
+));
+$afternoonModel = dayModel(array('d_tmin' => null, 'd_tmax' => 17.0, 'd_ww' => 3, 'd_rain' => 5.0, 'd_wind' => 12.0),
+    $hours, $afternoon - 60);
+$composed = $tags->composeBulletin($afternoonModel, $afternoon);
+check('balise #commune# dans le titre', $composed['title'], 'Météo à Soignies');
+check('minimum absent : balise vide', $composed['message'], '|17|Partiellement nuageux|15|5|Temps variable.');
+
+/* En parallèle : l'action est confiée au coeur, pas exécutée ici. */
+$bg = new meteobelgiqueirm();
+$bg->configuration = array_merge($b->configuration, array('bulletin_background' => 1));
+invoke($bg, 'saveForecast', array($model));
+$sent = bulletinAt($bg, $morning);
+check('en parallèle : rien d\'exécuté directement', count($sent), 0);
+check('en parallèle : deux actions confiées au coeur', count(scenarioExpression::$launched), 2);
+check('en parallèle : option background', scenarioExpression::$launched[0]['options']['background'], 1);
+check('en parallèle : commande au format du coeur', scenarioExpression::$launched[0]['cmd'], '#201#');
+
+/* Enregistrer dans le créneau ne fait pas partir le bulletin. */
+$settled = new meteobelgiqueirm();
+$settled->configuration = array_merge($b->configuration, array('bulletin_time' => date('H:i', time() - 600)));
+invoke($settled, 'saveForecast', array($model));
+invoke($settled, 'settleBulletin');
+check('enregistré dans le créneau : marqué sans envoi', count(bulletinAt($settled, time())), 0);
+
+/* Heure invalide : pas de créneau, pas d'erreur. */
+$bad = new meteobelgiqueirm();
+$bad->configuration = array_merge($b->configuration, array('bulletin_time' => '25:99'));
+check('heure invalide : aucun créneau', $bad->bulletinSlot($morning), null);
+
+/* Un bulletin réglé à 23 h 30 et manqué part encore après minuit. */
+$night = new meteobelgiqueirm();
+$night->configuration = array_merge($b->configuration, array('bulletin_time' => '23:30'));
+$yesterdayLate = (new DateTime('yesterday 23:30', $tzb))->getTimestamp();
+check('créneau de la veille retrouvé après minuit',
+    $night->bulletinSlot($yesterdayLate + 3000), date('Y-m-d', $yesterdayLate));
+
 /* ================================================================== BILAN */
 echo "\n" . str_repeat('=', 72) . "\n";
 printf("%d réussis, %d échoués\n", $passed, $failed);

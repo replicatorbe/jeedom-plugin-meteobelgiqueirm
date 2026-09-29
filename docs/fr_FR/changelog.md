@@ -19,5 +19,14 @@ Première version.
   d'actions Jeedom que voulu, message personnalisable, et une règle
   anti-répétition qui n'annonce une vigilance qu'une fois — à nouveau seulement
   si elle s'aggrave ou si un nouveau phénomène apparaît.
+- Bulletin du matin : chaque jour à l'heure choisie, minimum, maximum et
+  conseils du jour (parapluie, gel, chaleur, vent, neige, brouillard) envoyés
+  aux actions de son choix, une seule fois par jour, avec rattrapage borné à
+  deux heures, jours de la semaine, condition facultative et bouton d'essai.
+  Désactivé par défaut.
+- Commandes du jour même : température min et max, conditions, code
+  conditions et risque de pluie du jour.
+- Commande *Icône* : nom d'icône Material Design Icons des conditions
+  actuelles, pour un affichage hors de Jeedom.
 - Les valeurs sont publiées avec leur vraie date de relevé : une donnée périmée
   se voit, et Jeedom marque l'équipement en défaut au bout de 45 minutes.

@@ -12,5 +12,14 @@ First release.
 - Official yellow, orange and red warnings, separating what is in force from
   what is announced.
 - A single tile gathering the essentials, identical on mobile.
+- Automatic notification on weather warnings, with a configurable threshold.
+- Morning bulletin: every day at the chosen time, the day's minimum, maximum
+  and advice sent to the actions of your choice, once a day, with a catch-up
+  window of two hours, weekdays, an optional condition and a test button.
+  Disabled by default.
+- Same-day commands: today's min and max temperature, conditions, condition
+  code and chance of rain.
+- *Icon* command: Material Design Icons name of the current conditions, for a
+  display outside Jeedom.
 - Values are published with their real reading time: stale data is visible, and
   Jeedom marks the device as timed out after 45 minutes.
