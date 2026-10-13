@@ -322,6 +322,39 @@ class meteobelgiqueirm extends eqLogic {
     const MDI_WINDY = 50;
     const MDI_DRY_CODES = array(0, 1, 3, 14, 15);
 
+    /* ========================================== AFFICHAGE SUR TÉLÉVISION */
+
+    /*
+     * Colonnes de la bande horaire de tvWeather(). Six et non huit : vue du
+     * canapé, une colonne doit se lire sans plisser les yeux. Sur les seize
+     * heures de HOURS_SPAN, cela fait une colonne toutes les trois heures — à
+     * 6 h 30 : 06, 09, 12, 15, 18 et 21.
+     */
+    const TV_COLUMNS = 6;
+
+    /*
+     * Phrase de l'IRM quand aucune pluie n'est attendue, dans ses quatre
+     * langues, relevée telle quelle dans les réponses. Une télévision n'a pas à
+     * écrire « rien à signaler » en permanence : cette phrase-là devient une
+     * chaîne vide. Toute autre phrase passe, y compris une formulation que
+     * l'IRM inventerait demain — mieux vaut une ligne de trop qu'une averse
+     * tue.
+     */
+    const NOWCAST_DRY = array(
+        'Pas de pluie prévue prochainement',
+        'Geen regen voorzien op korte termijn',
+        'No rain forecasted shortly',
+        'Kein Regen erwartet in naher Zukunft',
+    );
+
+    /*
+     * Au-delà de cet âge, la phrase de pluie se tait sur la télévision. Elle
+     * est relative à l'instant de la lecture — « dans 2h40 » — et, l'IRM en
+     * panne depuis trois heures, elle annoncerait une pluie déjà tombée.
+     * C'est le seuil auquel la tuile se déclare périmée.
+     */
+    const TV_RAIN_MAX_AGE = 3600;
+
     /*
      * Message d'échec de la dernière lecture, pour que la commande d'action
      * « Rafraîchir » puisse le relayer à un scénario. Le souligné initial n'est
@@ -941,6 +974,7 @@ class meteobelgiqueirm extends eqLogic {
          * publishCmd garde alors la précédente : le minimum du matin reste
          * affiché l'après-midi, quand l'IRM ne le fournit plus. --- */
         $day0 = $this->todayAt($_model, $now);
+        $this->rememberDayMin($day0);
         $this->publishCmd('temperature_0_min', $day0['tmin'], $when);
         $this->publishCmd('temperature_0_max', $day0['tmax'], $when);
         if ($day0['ww'] !== null) {
@@ -1453,10 +1487,17 @@ class meteobelgiqueirm extends eqLogic {
      * disparaît au profit de « Cette nuit ». D'où les replis, tous tirés des
      * échéances horaires qui restent à venir aujourd'hui :
      *
-     * - minimum absent : le plus bas des heures restantes AVANT MIDI. À 6 h 30
-     *   c'est le minimum du matin, celui qui décide du gel ; l'après-midi il
-     *   n'y a plus d'heure avant midi, et le minimum reste inconnu plutôt que
-     *   de devenir la fraîcheur du soir, qui n'a rien d'un minimum du jour ;
+     * - minimum absent : le plus bas entre le minimum déjà retenu aujourd'hui
+     *   (rememberDayMin), la température observée si elle date de ce matin, et
+     *   les heures restantes AVANT MIDI. L'après-midi, sans mémoire, il reste
+     *   inconnu plutôt que de devenir la fraîcheur du soir, qui n'a rien d'un
+     *   minimum du jour.
+     *
+     *   Les heures restantes seules ne suffisent pas : l'IRM ne garde dans sa
+     *   réponse que l'heure en cours et les suivantes, et le plus bas d'entre
+     *   elles REMONTE avec la matinée. Le 13/10/2026, la commande affichait
+     *   ainsi 15 °C à 10 h — au-dessus des 14 °C observés à ce moment-là, et
+     *   des 13 °C relevés de 5 h à 7 h. Un minimum du jour ne remonte pas ;
      * - maximum absent : le plus haut entre l'observation et les heures
      *   restantes — un maximum « observé ou prévu », minoré le soir puisque
      *   les heures passées ne sont plus dans la réponse ;
@@ -1526,17 +1567,28 @@ class meteobelgiqueirm extends eqLogic {
         }
 
         /* L'observation ne compte pour le maximum que si elle date d'aujourd'hui :
-         * un cache de la veille au soir n'a rien à dire sur la journée. */
+         * un cache de la veille au soir n'a rien à dire sur la journée. Pour le
+         * minimum, seulement si elle date de ce matin, comme les heures. */
         $fetchedAt = isset($_model['fetched_at']) ? (int) $_model['fetched_at'] : 0;
         if ($fetchedAt > 0 && isset($_model['obs']['temp']) && $_model['obs']['temp'] !== null) {
             $fat = new DateTime('@' . $fetchedAt);
             $fat->setTimezone($tz);
             if ($fat->format('Y-m-d') === $key) {
                 $temps[] = $_model['obs']['temp'];
+                if ((int) $fat->format('G') < 12) {
+                    $morning[] = $_model['obs']['temp'];
+                }
             }
         }
 
-        if ($out['tmin'] === null && !empty($morning)) { $out['tmin'] = min($morning); }
+        if ($out['tmin'] === null) {
+            $memo = $this->getCache('day_min', array());
+            if (is_array($memo) && isset($memo['date'], $memo['value'])
+                && $memo['date'] === $key && is_numeric($memo['value'])) {
+                $morning[] = (float) $memo['value'];
+            }
+            if (!empty($morning)) { $out['tmin'] = min($morning); }
+        }
         if ($out['tmax'] === null && !empty($temps))   { $out['tmax'] = max($temps); }
         if ($out['rain_chance'] === null && !empty($rains)) { $out['rain_chance'] = max($rains); }
 
@@ -1558,6 +1610,23 @@ class meteobelgiqueirm extends eqLogic {
         $out['codes'] = array_values(array_unique(array_merge($codes, $hourCodes)));
 
         return $out;
+    }
+
+    /*
+     * Mémorise le minimum du jour retenu par todayAt(), pour qu'il ne remonte
+     * pas quand l'IRM retire le sien en cours de matinée. Appelée à chaque
+     * passage du cron, et seulement là : todayAt() et tvWeather() se
+     * contentent de lire, et un affichage qui interroge toutes les trente
+     * secondes n'écrit rien. Rien n'est écrit quand la valeur n'a pas changé.
+     */
+    private function rememberDayMin($_today) {
+        if (!isset($_today['tmin']) || $_today['tmin'] === null) {
+            return;
+        }
+        $memo = array('date' => $_today['date'], 'value' => (float) $_today['tmin']);
+        if ($this->getCache('day_min', array()) !== $memo) {
+            $this->setCache('day_min', $memo);
+        }
     }
 
     /*
@@ -1749,6 +1818,31 @@ class meteobelgiqueirm extends eqLogic {
      * journalier.
      */
     private function buildHours($_model, $_now) {
+        $out = array();
+        foreach ($this->hourColumns($_model, $_now, self::HOURS_COLUMNS) as $c) {
+            $h = $c['hour'];
+            $ww = self::describeWw($h['ww'], isset($h['day_night']) ? $h['day_night'] : 'd');
+
+            /* Clés volontairement courtes : décrites au long, seize heures
+             * feraient à elles seules la moitié du budget de la commande. */
+            $out[] = array(
+                'h' => (int) date('G', $h['ts']),
+                'i' => $ww[2],
+                't' => isset($h['temp']) && $h['temp'] !== null ? (int) round($h['temp']) : null,
+                'r' => $c['risk'] === null ? null : (int) round($c['risk']),
+                'n' => $c['new_day'],
+            );
+        }
+        return $out;
+    }
+
+    /*
+     * Les colonnes d'une bande horaire, communes à la tuile et à la
+     * télévision : chacune donne l'heure affichée, le pire risque de pluie de
+     * son intervalle et la marque du changement de jour. Seule la mise en
+     * forme diffère d'un écran à l'autre.
+     */
+    private function hourColumns($_model, $_now, $_columns) {
         $all = isset($_model['hourly']) ? $_model['hourly'] : array();
         if (empty($all)) {
             return array();
@@ -1777,7 +1871,7 @@ class meteobelgiqueirm extends eqLogic {
         }
 
         /* Une colonne par heure tant que ça tient, sinon on regroupe. */
-        $step = (int) ceil(count($picked) / self::HOURS_COLUMNS);
+        $step = (int) ceil(count($picked) / max(1, (int) $_columns));
         if ($step < 1) {
             $step = 1;
         }
@@ -1787,7 +1881,6 @@ class meteobelgiqueirm extends eqLogic {
         for ($i = 0; $i < count($picked); $i += $step) {
             $h = $picked[$i];
             $day = date('Y-m-d', $h['ts']);
-            $ww = self::describeWw($h['ww'], isset($h['day_night']) ? $h['day_night'] : 'd');
 
             /*
              * Le risque de pluie est celui du pire moment de l'intervalle : une
@@ -1802,14 +1895,10 @@ class meteobelgiqueirm extends eqLogic {
                 }
             }
 
-            /* Clés volontairement courtes : décrites au long, seize heures
-             * feraient à elles seules la moitié du budget de la commande. */
             $out[] = array(
-                'h' => (int) date('G', $h['ts']),
-                'i' => $ww[2],
-                't' => isset($h['temp']) && $h['temp'] !== null ? (int) round($h['temp']) : null,
-                'r' => $risk === null ? null : (int) round($risk),
-                'n' => ($day !== $previousDay) ? 1 : 0,
+                'hour'    => $h,
+                'risk'    => $risk,
+                'new_day' => ($day !== $previousDay) ? 1 : 0,
             );
             $previousDay = $day;
         }
@@ -2820,6 +2909,88 @@ class meteobelgiqueirm extends eqLogic {
             'warnings' => $warnings,
             'nowcast'  => isset($model['nowcast']) ? $model['nowcast'] : array(),
         );
+    }
+
+    /*
+     * La météo du matin pour la télévision : le plugin Jeedom TV l'affiche en
+     * tête de son tableau des trains, et l'appelle toutes les trente secondes
+     * environ.
+     *
+     * D'où trois règles. Aucun appel réseau : tout vient du cache, comme
+     * toAjax(). Rien n'est écrit : la mémoire du minimum est tenue par le cron.
+     * Et aucune exception : l'appelant est un autre plugin, qui n'a pas à
+     * connaître nos pannes — null veut dire « rien à afficher », et c'est
+     * aussi la réponse quand aucune prévision n'a jamais été lue.
+     *
+     * Le minimum est celui des commandes « du jour » (todayAt), pas celui de
+     * la tuile : ce dernier est, une bonne partie de la journée, le minimum de
+     * la nuit qui vient.
+     *
+     * $_now n'existe que pour le jeu d'essai.
+     */
+    public function tvWeather($_now = null) {
+        try {
+            $model = $this->getForecast();
+            if (empty($model) || empty($model['fetched_at'])) {
+                return null;
+            }
+            $now = ($_now === null) ? time() : (int) $_now;
+            $fetchedAt = (int) $model['fetched_at'];
+
+            $obs = isset($model['obs']) ? $model['obs'] : array();
+            $ww = isset($obs['ww']) ? $obs['ww'] : null;
+            $dayNight = isset($obs['day_night']) ? $obs['day_night'] : 'd';
+            $wind = isset($model['current']['wind_speed']) ? $model['current']['wind_speed'] : null;
+
+            $today = $this->todayAt($model, $now);
+            $warning = $this->warningsAt($model, $now);
+            $nowcast = $this->nowcastAt($model, $now);
+
+            $rain = trim((string) $nowcast['hint']);
+            $normalized = self::normalize($rain);
+            foreach (self::NOWCAST_DRY as $dry) {
+                if ($normalized === self::normalize($dry)) {
+                    $rain = '';
+                    break;
+                }
+            }
+            if (($now - $fetchedAt) > self::TV_RAIN_MAX_AGE) {
+                $rain = '';
+            }
+
+            $hours = array();
+            foreach ($this->hourColumns($model, $now, self::TV_COLUMNS) as $c) {
+                $h = $c['hour'];
+                $hours[] = array(
+                    'h'    => date('H', $h['ts']),
+                    'icon' => self::mdiIcon(isset($h['ww']) ? $h['ww'] : null,
+                                            isset($h['day_night']) ? $h['day_night'] : 'd',
+                                            isset($h['wind_speed']) ? $h['wind_speed'] : null),
+                    'temp' => isset($h['temp']) && $h['temp'] !== null ? (int) round($h['temp']) : null,
+                    'rain' => $c['risk'] === null ? null : (int) round($c['risk']),
+                );
+            }
+
+            $describe = self::describeWw($ww, $dayNight);
+            $level = max(0, (int) $warning['level']);
+
+            return array(
+                'city'         => !empty($model['city']) ? $model['city'] : $this->cityName(),
+                'temp'         => isset($obs['temp']) ? $obs['temp'] : null,
+                'icon'         => self::mdiIcon($ww, $dayNight, $wind),
+                'condition'    => (string) $describe[0],
+                'tmin'         => $today['tmin'],
+                'tmax'         => $today['tmax'],
+                'rain'         => $rain,
+                'warningLevel' => $level,
+                'warning'      => $level > 0 ? (string) $warning['label'] : '',
+                'hours'        => $hours,
+                'fetched'      => $fetchedAt,
+            );
+        } catch (Throwable $e) {
+            log::add(__CLASS__, 'debug', 'tvWeather : ' . $e->getMessage());
+            return null;
+        }
     }
 }
 

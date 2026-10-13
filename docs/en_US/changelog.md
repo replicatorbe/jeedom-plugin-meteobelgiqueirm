@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3 — 13/10/2026
+
+- `tvWeather()` method for the Android TV display (Jeedom TV plugin): the
+  current weather essentials, read from the cache only — never a call to RMI —,
+  with a six-column hourly strip using Material Design icons.
+- *Today's min temperature*: when RMI drops its minimum during the morning, the
+  command no longer creeps up with the remaining hours (15 °C at 10 am on
+  13/10/2026, after 13 °C measured at dawn). It now accounts for the morning
+  observed temperature and keeps the lowest value already retained that day.
+
 ## 0.1
 
 First release.

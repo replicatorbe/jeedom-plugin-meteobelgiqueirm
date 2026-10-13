@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3 — 13/10/2026
+
+- Méthode `tvWeather()` pour l'affichage sur Android TV (plugin Jeedom TV) :
+  l'essentiel de la météo du moment, lu dans le cache seulement — jamais
+  d'appel à l'IRM —, avec une bande de six colonnes aux icônes Material Design.
+- *Température min du jour* : quand l'IRM retire son minimum en cours de
+  matinée, la commande ne remonte plus avec les heures restantes (15 °C à 10 h
+  le 13/10/2026, après 13 °C relevés à l'aube). Elle tient compte de la
+  température observée le matin et garde le plus bas déjà retenu dans la
+  journée.
+
 ## 0.2 — 29/09/2026
 
 - Les listes d'actions (vigilance et bulletin du matin) affichent le nom

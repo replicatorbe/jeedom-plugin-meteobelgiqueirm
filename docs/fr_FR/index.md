@@ -100,11 +100,13 @@ Elles sont lues dans le bloc *journée* de la prévision de l'IRM, jamais dans
 celui de la nuit qui suit. L'IRM vide ce bloc au fil de la journée, et le plugin
 se replie alors sur les prévisions heure par heure qui restent :
 
-- **le minimum** disparaît vers la mi-journée — relevé réel à 12 h 44 : absent.
-  Tant qu'il reste des heures avant midi, le plus bas d'entre elles le remplace
-  (à 6 h 30, c'est bien le minimum du matin, celui qui décide du gel). Ensuite il
-  est **inconnu** : la commande garde sa dernière valeur, et la balise `#min#` du
-  bulletin reste vide ;
+- **le minimum** disparaît en cours de matinée — relevé réel : déjà absent à
+  10 h le 13/10/2026, à 12 h 44 le 29/09/2026. Il est alors remplacé par le plus
+  bas entre le minimum déjà retenu dans la journée, la température observée le
+  matin et les heures restantes avant midi : il ne **remonte** donc jamais avec
+  la matinée. Sans rien de tout cela, l'après-midi, il est **inconnu** : la
+  commande garde sa dernière valeur, et la balise `#min#` du bulletin reste
+  vide ;
 - **le maximum**, quand le bloc a disparu (le soir), devient le plus haut entre
   la température observée et les heures restantes ;
 - **le risque de pluie**, de même, le plus haut des heures restantes ;
@@ -378,6 +380,25 @@ Le jeu d'icônes est celui de Home Assistant : les variantes plus récentes de l
 police (« partly-rainy »…) manquent aux versions anciennes et s'afficheraient
 comme un carré vide. Quand l'observation ne donne pas de code, la commande garde
 sa valeur précédente.
+
+### Pour un autre plugin : `tvWeather()`
+
+Le plugin Jeedom TV affiche la météo en tête de son tableau des trains en
+appelant, toutes les trente secondes environ, la méthode publique `tvWeather()`
+de l'équipement. Elle ne lit que le cache — jamais d'appel à l'IRM —, n'écrit
+rien, ne lève jamais d'exception, et rend `null` si aucune prévision n'a encore
+été lue. Sinon, un tableau :
+
+| Clé | Contenu |
+|---|---|
+| `city` | commune |
+| `temp` | température observée, en °C |
+| `icon`, `condition` | icône MDI et libellé du temps actuel, comme `icon_mdi` et `condition` |
+| `tmin`, `tmax` | minimum et maximum du jour, comme `temperature_0_min` et `temperature_0_max` |
+| `rain` | phrase de pluie de l'IRM (« Risque de précipitations dans 2h40 »), vide s'il n'y a rien à signaler ou si la lecture date de plus d'une heure |
+| `warningLevel`, `warning` | niveau (0 à 3) et libellé de la vigilance **en cours** |
+| `hours` | jusqu'à six colonnes `h` (« 09 »), `icon` (MDI, jour ou nuit), `temp`, `rain` (pire risque de l'intervalle, en %) — à 6 h 30 : 06, 09, 12, 15, 18, 21 |
+| `fetched` | horodatage Unix de la dernière lecture réussie |
 
 ## Quand l'IRM est indisponible
 

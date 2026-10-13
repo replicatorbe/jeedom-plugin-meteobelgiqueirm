@@ -702,6 +702,9 @@ $m = dayModel(array('d_tmin' => null, 'd_tmax' => 17.0, 'd_ww' => 3), $hours, $m
 $t = invoke($eq, 'todayAt', array($m, $morning));
 check('minimum absent le matin : repli sur les heures avant midi', $t['tmin'], 3.0);
 $afternoon = $morning + 7 * 3600;   // 13 h 30
+/* Lu à 13 h 29, comme le ferait le cron : une observation de 6 h 29 serait,
+ * elle, un vrai relevé du matin, et compterait. */
+$m['fetched_at'] = $afternoon - 60;
 $t = invoke($eq, 'todayAt', array($m, $afternoon));
 check('minimum absent l\'après-midi : inconnu', $t['tmin'], null);
 
@@ -724,6 +727,55 @@ check('réponse de midi : minimum du bloc jour absent', $first['d_tmin'], null);
 /* La fusion historique, elle, prend le minimum de la nuit qui vient : c'est
  * pourquoi le bulletin ne la lit pas. */
 check('réponse de midi : la tuile garde le minimum de la nuit', $first['tmin'], 20.0);
+
+/*
+ * Relevé réel du 13/10/2026 à 10 h 09 : le bloc jour n'a plus de minimum, la
+ * réponse ne commence qu'à 9 h, et le plus bas des heures restantes avant midi
+ * (15 °C à 10 h) dépassait la température observée (14 °C) — après 13 °C de
+ * 5 h à 7 h. La commande affichait 15 °C, et remontait avec la matinée.
+ */
+$ten = (new DateTime('today 10:09', $tzb))->getTimestamp();
+$lateHours = array();
+foreach (array(9 => 14.0, 10 => 15.0, 11 => 16.0, 12 => 18.0, 15 => 21.0, 21 => 14.0, 23 => 12.0) as $hh => $temp) {
+    $lateHours[$hh] = array('temp' => $temp, 'ww' => 15);
+}
+$m = dayModel(array('d_tmin' => null, 'd_tmax' => 21.0, 'd_ww' => 15), $lateHours, $ten - 540);
+$m['obs']['temp'] = 14.0;
+$fresh = new meteobelgiqueirm();
+$t = invoke($fresh, 'todayAt', array($m, $ten));
+check('le minimum ne dépasse pas la température observée', $t['tmin'], 14.0);
+$fresh->setCache('day_min', array('date' => $todayKey, 'value' => 13.0));
+$t = invoke($fresh, 'todayAt', array($m, $ten));
+check('le minimum retenu plus tôt ne remonte pas', $t['tmin'], 13.0);
+$t = invoke($fresh, 'todayAt', array($m, $afternoon));
+check('l\'après-midi, le minimum retenu reste', $t['tmin'], 13.0);
+$fresh->setCache('day_min', array('date' => date('Y-m-d', $morning - 86400), 'value' => 5.0));
+$t = invoke($fresh, 'todayAt', array($m, $ten));
+check('le minimum de la veille ne compte pas', $t['tmin'], 14.0);
+/* Le minimum de l'IRM, quand il est là, reste l'autorité. */
+$fresh->setCache('day_min', array('date' => $todayKey, 'value' => 10.0));
+$m['days'][$todayKey]['d_tmin'] = 12.0;
+$t = invoke($fresh, 'todayAt', array($m, $ten));
+check('le minimum de l\'IRM l\'emporte sur la mémoire', $t['tmin'], 12.0);
+/* Une observation de l'après-midi n'est pas un minimum. */
+$m = dayModel(array('d_tmin' => null, 'd_tmax' => 21.0), array(), $afternoon - 60);
+$m['obs']['temp'] = 19.0;
+$t = invoke(new meteobelgiqueirm(), 'todayAt', array($m, $afternoon));
+check('l\'observation de l\'après-midi n\'est pas un minimum', $t['tmin'], null);
+
+/* La mémoire est tenue par le cron : sans heures ni observation, pour ne
+ * pas dépendre de l'heure du lancement. */
+$writer = new meteobelgiqueirm();
+$m = dayModel(array('d_tmin' => 12.0, 'd_tmax' => 20.0, 'd_ww' => 3), array(), time());
+$m['obs']['temp'] = null;
+invoke($writer, 'refreshCommands', array($m));
+check('le cron mémorise le minimum de l\'IRM', $writer->getCache('day_min'),
+    array('date' => date('Y-m-d'), 'value' => 12.0));
+$m['days'][$todayKey]['d_tmin'] = null;
+$writer->published = array();
+invoke($writer, 'refreshCommands', array($m));
+check('l\'IRM le retire : la commande garde le minimum retenu',
+    isset($writer->published['temperature_0_min']) ? $writer->published['temperature_0_min'] : 'absent', 12.0);
 
 /* ================================================= ENVOI DU BULLETIN */
 section('Bulletin du matin : envoi unique');
@@ -884,6 +936,145 @@ $night->configuration = array_merge($b->configuration, array('bulletin_time' => 
 $yesterdayLate = (new DateTime('yesterday 23:30', $tzb))->getTimestamp();
 check('créneau de la veille retrouvé après minuit',
     $night->bulletinSlot($yesterdayLate + 3000), date('Y-m-d', $yesterdayLate));
+
+/* ============================================== AFFICHAGE SUR TÉLÉVISION */
+section('Météo pour la télévision (tvWeather)');
+
+/* Le cache du stub est commun à tous les équipements du jeu d'essai. */
+$tv = new meteobelgiqueirm();
+$tv->configuration = array('ins' => '55040');
+invoke($tv, 'clearForecast');
+check('sans prévision en cache : null', $tv->tvWeather($morning), null);
+
+/* Une matinée à 6 h 30 : une averse isolée à 13 h, la nuit à partir de 19 h,
+ * une vigilance orange en cours et une rouge seulement annoncée. */
+$tvHours = array();
+for ($hh = 6; $hh <= 23; $hh++) {
+    $tvHours[$hh] = array('temp' => 8.0 + ($hh < 15 ? $hh - 6 : 23 - $hh), 'ww' => 1,
+        'day_night' => ($hh >= 19) ? 'n' : 'd', 'rain_chance' => 10.0, 'wind_speed' => 15.0);
+}
+$tvHours[13]['rain_chance'] = 90.0;
+$tvHours[13]['ww'] = 18;
+$tvModel = dayModel(array('d_tmin' => 4.0, 'd_tmax' => 17.0, 'd_ww' => 3, 'd_rain' => 40.0),
+    $tvHours, $morning - 60);
+$tvModel['obs'] = array('temp' => 9.0, 'ww' => 15, 'day_night' => 'd', 'time' => '06:20');
+$tvModel['current'] = array('wind_speed' => 10.0);
+$tvModel['nowcast'] = array('hint' => 'Risque de précipitations dans 2h40', 'per_hour' => 6.0, 'frames' => array());
+$tvModel['warnings'] = array(
+    array('id' => 0, 'slug' => 'wind', 'name' => 'Vent', 'level' => 2, 'text' => 'Rafales',
+          'from' => $morning - 600, 'to' => $morning + 3600),
+    array('id' => 3, 'slug' => 'thunder', 'name' => 'Orage', 'level' => 3, 'text' => 'Orages',
+          'from' => $morning + 36000, 'to' => $morning + 43200),
+);
+invoke($tv, 'saveForecast', array($tvModel));
+$tv->published = array();
+$tv->store = array();
+$r = $tv->tvWeather($morning);
+
+check('les champs attendus, dans l\'ordre', is_array($r) ? array_keys($r) : $r,
+    array('city', 'temp', 'icon', 'condition', 'tmin', 'tmax', 'rain', 'warningLevel', 'warning', 'hours', 'fetched'));
+check('commune', $r['city'], 'Soignies');
+check('température observée', $r['temp'], 9.0);
+check('icône MDI du temps actuel', $r['icon'], 'mdi:weather-cloudy');
+check('conditions en clair', $r['condition'], 'Couvert');
+/* Celui des commandes « du jour », pas celui de la tuile. */
+check('minimum du jour (bloc jour)', $r['tmin'], 4.0);
+check('maximum du jour', $r['tmax'], 17.0);
+check('phrase de pluie de l\'IRM', $r['rain'], 'Risque de précipitations dans 2h40');
+check('vigilance en cours : orange', $r['warningLevel'], 2);
+check('libellé de la vigilance en cours', $r['warning'], 'Vigilance orange — Vent');
+check('heure de la lecture', $r['fetched'], $morning - 60);
+
+/* À 6 h 30 : six colonnes, une toutes les trois heures. */
+$labels = array();
+$mdiOnly = true;
+foreach ($r['hours'] as $c) {
+    $labels[] = $c['h'];
+    if (strpos($c['icon'], 'mdi:weather-') !== 0) { $mdiOnly = false; }
+}
+check('six colonnes au plus', count($r['hours']), 6);
+check('06, 09, 12, 15, 18, 21', $labels, array('06', '09', '12', '15', '18', '21'));
+check('chaque colonne porte ses quatre champs', array_keys($r['hours'][0]), array('h', 'icon', 'temp', 'rain'));
+check('icônes MDI, pas Font Awesome', $mdiOnly, true);
+/* L'averse de 13 h est dans la colonne « 12 » : elle ne doit pas disparaître. */
+check('la colonne porte le pire risque de son intervalle', $r['hours'][2]['rain'], 90);
+check('les autres colonnes gardent le leur', $r['hours'][1]['rain'], 10);
+check('température de l\'heure affichée, en entier', $r['hours'][2]['temp'], 14);
+check('la nuit prend son icône', $r['hours'][5]['icon'], 'mdi:weather-night-partly-cloudy');
+
+/* Lire ne doit rien écrire : ni commande, ni mémoire. */
+check('aucune commande publiée', $tv->published, array());
+check('aucune mémoire écrite', $tv->store, array());
+
+/* Le soir, la bande déborde sur la nuit, toujours en six colonnes. */
+$evening = (new DateTime('today 21:30', $tzb))->getTimestamp();
+$evHours = array();
+foreach (range(21, 23) as $hh) {
+    $evHours[$hh] = array('temp' => 12.0, 'ww' => 0, 'day_night' => 'n', 'rain_chance' => 0.0);
+}
+$evModel = dayModel(array(), $evHours, $evening - 60);
+$next = (new DateTime('tomorrow 00:00', $tzb))->getTimestamp();
+for ($i = 0; $i < 14; $i++) {
+    $evModel['hourly'][] = array('ts' => $next + $i * 3600, 'temp' => 10.0, 'ww' => 0,
+        'day_night' => 'n', 'rain_chance' => 0.0, 'wind_speed' => null);
+}
+invoke($tv, 'saveForecast', array($evModel));
+$r = $tv->tvWeather($evening);
+check('le soir, six colonnes au plus', count($r['hours']) <= 6 && count($r['hours']) > 0, true);
+check('le soir, la bande commence à l\'heure en cours', $r['hours'][0]['h'], '21');
+
+/* Rien à signaler : la phrase « pas de pluie » se tait, en toute langue. */
+$dry = $tvModel;
+$dry['nowcast']['hint'] = 'Pas de pluie prévue prochainement';
+$dry['warnings'] = array();
+invoke($tv, 'saveForecast', array($dry));
+$r = $tv->tvWeather($morning);
+check('pas de pluie prévue : chaîne vide', $r['rain'], '');
+check('aucune vigilance : niveau 0', $r['warningLevel'], 0);
+check('aucune vigilance : libellé vide', $r['warning'], '');
+$dry['nowcast']['hint'] = 'Geen regen voorzien op korte termijn';
+invoke($tv, 'saveForecast', array($dry));
+check('pas de pluie prévue, en néerlandais', $tv->tvWeather($morning)['rain'], '');
+
+/* Seule l'annonce à venir ne fait pas une vigilance en cours. */
+$soon = $tvModel;
+$soon['warnings'] = array($tvModel['warnings'][1]);
+invoke($tv, 'saveForecast', array($soon));
+check('vigilance seulement annoncée : niveau 0', $tv->tvWeather($morning)['warningLevel'], 0);
+
+/* Une phrase relative lue il y a deux heures ne dit plus la vérité. */
+invoke($tv, 'saveForecast', array($tvModel));
+check('lecture vieille de deux heures : la pluie se tait', $tv->tvWeather($morning + 7200)['rain'], '');
+
+/* Le minimum suit la même règle que la commande : le bloc jour retiré, il
+ * reprend le minimum retenu par le cron. */
+$noMin = $tvModel;
+$noMin['days'][$todayKey]['d_tmin'] = null;
+invoke($tv, 'saveForecast', array($noMin));
+$tv->setCache('day_min', array('date' => $todayKey, 'value' => 3.0));
+check('minimum retiré par l\'IRM : celui retenu par le cron', $tv->tvWeather($morning)['tmin'], 3.0);
+$tv->store = array();
+
+/* Un modèle corrompu ne lève rien : null. */
+$broken = $tvModel;
+$broken['hourly'] = array(array('ts' => array(), 'temp' => 1.0));
+invoke($tv, 'saveForecast', array($broken));
+check('modèle corrompu : null, sans exception', $tv->tvWeather($morning), null);
+
+/* Aucun appel réseau, ni écriture : ni tvWeather ni ce qu'elle appelle ne
+ * touchent à call(), update() ou aux commandes. */
+$networkFree = true;
+foreach (array('tvWeather', 'todayAt', 'warningsAt', 'nowcastAt', 'hourColumns', 'cityName', 'getForecast') as $method) {
+    $ref = new ReflectionMethod('meteobelgiqueirm', $method);
+    $body = implode('', array_slice(file($ref->getFileName()), $ref->getStartLine() - 1,
+        $ref->getEndLine() - $ref->getStartLine() + 1));
+    if (preg_match('/self::call\(|->update\(|httpGet|curl_|->refreshCommands\(|->publishCmd\(|->setCache\(|checkAndUpdateCmd/', $body)) {
+        $networkFree = false;
+        echo '        -> ' . $method . "\n";
+    }
+}
+check('aucun appel réseau ni écriture sur le chemin de tvWeather', $networkFree, true);
+invoke($tv, 'clearForecast');
 
 /* ================================================================== BILAN */
 echo "\n" . str_repeat('=', 72) . "\n";
