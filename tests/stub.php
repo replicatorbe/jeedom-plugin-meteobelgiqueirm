@@ -88,10 +88,23 @@ class eqLogic {
         $this->configuration[$_key] = $_value;
         return $this;
     }
-    public function getCmd($_type, $_logicalId) { return null; }
+    /* Une commande n'existe, pour le stub, qu'une fois publiée : sa valeur
+     * courante est la dernière écrite. $writes garde chaque écriture, pour
+     * vérifier qu'une valeur inchangée n'est pas republiée. */
+    public $writes = array();
+    public function getCmd($_type, $_logicalId) {
+        if (!array_key_exists($_logicalId, $this->published)) {
+            return null;
+        }
+        $c = new cmd();
+        $c->logicalId = $_logicalId;
+        $c->value = $this->published[$_logicalId];
+        return $c;
+    }
     public function getName() { return 'Commune'; }
     public function checkAndUpdateCmd($_logicalId, $_value, $_when = null) {
         $this->published[$_logicalId] = $_value;
+        $this->writes[] = array($_logicalId, $_value);
     }
     /* Le plugin n'a pas le droit de redéfinir ces deux-là : elles sont
      * publiques dans eqLogic, et les réduire en privé casse le chargement de

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4 — 18/10/2026
+
+- Une vigilance terminée s'efface : libellé, type, texte, date de fin et
+  prochaine vigilance restaient affichés sous un *Vigilance en cours* à 0
+  (« Vigilance jaune — Brouillard » encore visible bien après le 06/10/2026).
+  Le vide n'est écrit qu'une fois, pour ne pas réveiller les scénarios à
+  chaque passage, et jamais après une lecture en échec.
+- *Rafales* : quand l'IRM ne donne pas de rafale, la commande prend la vitesse
+  du vent au lieu de garder la dernière rafale annoncée (50 km/h affichés
+  depuis le 09/10/2026 par 10 km/h de vent).
+
 ## 0.3 — 13/10/2026
 
 - Méthode `tvWeather()` pour l'affichage sur Android TV (plugin Jeedom TV) :

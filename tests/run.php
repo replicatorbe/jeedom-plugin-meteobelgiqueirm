@@ -777,6 +777,47 @@ invoke($writer, 'refreshCommands', array($m));
 check('l\'IRM le retire : la commande garde le minimum retenu',
     isset($writer->published['temperature_0_min']) ? $writer->published['temperature_0_min'] : 'absent', 12.0);
 
+/* ====================================== VIGILANCE TERMINÉE, RAFALE */
+section('Commandes : vigilance terminée et rafale absente');
+
+$pub = new meteobelgiqueirm();
+$m = dayModel(array('d_tmin' => 12.0, 'd_tmax' => 20.0), array(), time());
+$m['warnings'] = array(array('from' => time() - 3600, 'to' => time() + 3600, 'level' => 1,
+    'slug' => 'fog', 'name' => 'Brouillard', 'text' => 'Brouillard dense.'));
+$m['current'] = array('wind_speed' => 50.0, 'wind_gust' => 70.0);
+invoke($pub, 'refreshCommands', array($m));
+check('vigilance en cours : libellé publié', $pub->published['warning_label'] !== '', true);
+check('rafale de l\'IRM publiée', $pub->published['wind_gust'], 70.0);
+
+/* La vigilance prend fin, l'IRM ne donne plus de rafale (relevé du 09/10/2026). */
+$m['warnings'] = array();
+$m['current'] = array('wind_speed' => 10.0, 'wind_gust' => null);
+invoke($pub, 'refreshCommands', array($m));
+check('vigilance terminée : libellé effacé', $pub->published['warning_label'], '');
+check('vigilance terminée : fin effacée', $pub->published['warning_end'], '');
+check('vigilance terminée : warning_active à 0', $pub->published['warning_active'], 0);
+check('rafale absente : vitesse du vent', $pub->published['wind_gust'], 10.0);
+
+/* Le vide n'est écrit qu'une fois : un second passage ne republie rien. */
+$pub->writes = array();
+invoke($pub, 'refreshCommands', array($m));
+$emptyWrites = array_filter($pub->writes, function ($_w) { return $_w[1] === ''; });
+check('second passage : aucun vide republié', count($emptyWrites), 0);
+
+/* Sans lecture réussie, on ne sait rien : le libellé n'est pas effacé. */
+$unknown = new meteobelgiqueirm();
+$unknown->published['warning_label'] = 'Vigilance jaune — Brouillard';
+$m['fetched_at'] = 0;
+invoke($unknown, 'refreshCommands', array($m));
+check('lecture en échec : libellé conservé', $unknown->published['warning_label'], 'Vigilance jaune — Brouillard');
+
+/* Ni rafale ni vent : rien, plutôt qu'une rafale à 0. */
+$calm = new meteobelgiqueirm();
+$m = dayModel(array(), array(), time());
+$m['current'] = array('wind_speed' => null, 'wind_gust' => null);
+invoke($calm, 'refreshCommands', array($m));
+check('ni rafale ni vent : rien publié', array_key_exists('wind_gust', $calm->published), false);
+
 /* ================================================= ENVOI DU BULLETIN */
 section('Bulletin du matin : envoi unique');
 

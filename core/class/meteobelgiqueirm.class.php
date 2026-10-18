@@ -924,7 +924,21 @@ class meteobelgiqueirm extends eqLogic {
 
         $this->publishCmd('pressure', isset($cur['pressure']) ? $cur['pressure'] : null, $when);
         $this->publishCmd('wind_speed', isset($cur['wind_speed']) ? $cur['wind_speed'] : null, $when);
-        $this->publishCmd('wind_gust', isset($cur['wind_gust']) ? $cur['wind_gust'] : null, $when);
+        /*
+         * L'IRM ne donne de rafale (windPeakSpeedKm) que lorsqu'elle se
+         * distingue du vent moyen : le reste du temps, wind_gust vaut null.
+         * Ne rien publier figeait la dernière rafale annoncée — 50 km/h
+         * affichés le 09/10/2026 et encore des jours plus tard, par 10 km/h
+         * de vent. Une rafale ne pouvant être inférieure au vent moyen, on
+         * publie alors la vitesse du vent. Sans vent non plus, on ne publie
+         * rien plutôt que 0 : la commande Vent garde elle aussi sa dernière
+         * valeur, et une rafale à 0 sous un vent de 30 km/h serait absurde.
+         */
+        $gust = isset($cur['wind_gust']) ? $cur['wind_gust'] : null;
+        if ($gust === null && isset($cur['wind_speed'])) {
+            $gust = $cur['wind_speed'];
+        }
+        $this->publishCmd('wind_gust', $gust, $when);
         $this->publishCmd('wind_direction', isset($cur['wind_direction']) ? $cur['wind_direction'] : null, $when);
         $this->publishCmd('wind_direction_text', isset($cur['wind_direction_text']) ? $cur['wind_direction_text'] : '', $when);
         $this->publishCmd('uv', isset($_model['uv']) ? $_model['uv'] : null, $when);
@@ -953,17 +967,27 @@ class meteobelgiqueirm extends eqLogic {
 
         /* --- Avertissements --- */
         $w = $this->warningsAt($_model, $now);
+        /*
+         * Une vigilance qui prend fin doit effacer ses textes : sinon
+         * « Vigilance jaune — Brouillard » restait affiché, avec sa date de
+         * fin dépassée, sous un warning_active à 0. Le vide n'est autorisé
+         * que sur une lecture réussie — sans elle, warningsAt() rend des
+         * textes vides qui veulent dire « on ne sait pas », pas « rien ».
+         * Les commandes numériques et binaires du groupe n'en ont pas
+         * besoin : elles reçoivent 0, jamais du vide.
+         */
+        $clear = !empty($_model['fetched_at']);
         $this->publishCmd('warning_active', $w['active'], $when);
         $this->publishCmd('warning_level', $w['level'], $when);
-        $this->publishCmd('warning_slug', $w['slug'], $when);
-        $this->publishCmd('warning_slugs', $w['slugs'], $when);
-        $this->publishCmd('warning_label', $w['label'], $when);
-        $this->publishCmd('warning_text', $w['text'], $when);
-        $this->publishCmd('warning_end', $w['end'], $when);
+        $this->publishCmd('warning_slug', $w['slug'], $when, $clear);
+        $this->publishCmd('warning_slugs', $w['slugs'], $when, $clear);
+        $this->publishCmd('warning_label', $w['label'], $when, $clear);
+        $this->publishCmd('warning_text', $w['text'], $when, $clear);
+        $this->publishCmd('warning_end', $w['end'], $when, $clear);
         $this->publishCmd('warning_count', $w['count'], $when);
         $this->publishCmd('next_warning_level', $w['next_level'], $when);
-        $this->publishCmd('next_warning_slug', $w['next_slug'], $when);
-        $this->publishCmd('next_warning_start', $w['next_start'], $when);
+        $this->publishCmd('next_warning_slug', $w['next_slug'], $when, $clear);
+        $this->publishCmd('next_warning_start', $w['next_start'], $when, $clear);
 
         /* --- Bulletins --- */
         $this->publishCmd('bulletin_0', isset($today['text']) ? $today['text'] : '', $when);
@@ -1039,8 +1063,22 @@ class meteobelgiqueirm extends eqLogic {
      * maintenant même quand la valeur n'a pas changé, et republier une donnée
      * de trois jours rajeunirait l'équipement — qui serait déclaré vivant pour
      * toujours, exactement le défaut qu'on veut éviter.
+     *
+     * Le quatrième argument autorise le vide, pour les textes qu'il faut
+     * pouvoir effacer (une vigilance terminée). Le vide n'est alors écrit que
+     * si la commande ne l'est pas déjà : checkAndUpdateCmd() tient une
+     * ancienne valeur vide pour un changement, et republier '' à chaque
+     * passage réveillerait les scénarios toutes les dix minutes.
      */
-    private function publishCmd($_logicalId, $_value, $_when = null) {
+    private function publishCmd($_logicalId, $_value, $_when = null, $_allowEmpty = false) {
+        if ($_allowEmpty && $_value === '') {
+            $cmd = $this->getCmd('info', $_logicalId);
+            if (!is_object($cmd) || (string) $cmd->execCmd() === '') {
+                return;
+            }
+            $this->checkAndUpdateCmd($_logicalId, '', $_when);
+            return;
+        }
         if ($_value === null || $_value === '') {
             /* Ne jamais remplacer une valeur connue par du vide : une lecture
              * en échec ne doit pas effacer ce que l'on savait. Et ne rien
