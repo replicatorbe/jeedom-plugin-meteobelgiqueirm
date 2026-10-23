@@ -231,12 +231,15 @@ $eqLogics = eqLogic::byType($plugin->getId());
 								<label class="col-sm-2 control-label">{{Prévenir aussi}}</label>
 								<div class="col-sm-10">
 									<label class="checkbox-inline">
+										<input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="alert_on_start" value="1">{{au début d'une vigilance annoncée à l'avance}}
+									</label>
+									<label class="checkbox-inline">
 										<input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="alert_on_end" value="1">{{à la fin de la vigilance}}
 									</label>
 									<label class="checkbox-inline">
-										<input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="alert_on_upcoming" value="1">{{pour les vigilances annoncées à l'avance}}
+										<input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="alert_on_upcoming" value="1">{{pour toutes les vigilances annoncées, même lointaines}}
 									</label>
-									<span class="help-block" style="margin:4px 0 0 0;">{{L'IRM publie ses avertissements jusqu'à douze heures avant : la seconde option laisse le temps de rentrer les meubles de jardin, au prix d'un message de plus par épisode.}}</span>
+									<span class="help-block" style="margin:4px 0 0 0;">{{Une vigilance qui commence dans les six heures est toujours annoncée sans attendre son début, avec son heure de départ. Son début effectif envoie un second message, « C'est maintenant », sauf si la première case est décochée. La dernière option prévient dès que l'IRM la publie, parfois la veille.}}</span>
 								</div>
 							</div>
 

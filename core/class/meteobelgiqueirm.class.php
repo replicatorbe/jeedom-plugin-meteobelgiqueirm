@@ -194,6 +194,15 @@ class meteobelgiqueirm extends eqLogic {
 
     const ALERT_MESSAGE_DEFAULT = 'Vigilance #niveau# — #type# à #commune#, jusqu\'au #fin#';
 
+    /*
+     * Avance donnée aux vigilances annoncées, même option décochée. Attendre
+     * le début, c'est prévenir quand la tempête est déjà là : le 23/10/2026,
+     * l'orange vent de midi n'aurait sonné qu'à midi, alors que l'IRM la
+     * publiait depuis la veille. Six heures et pas douze : avec douze, l'orange
+     * de midi sonnerait à minuit, scènes lumineuses comprises.
+     */
+    const ALERT_LEAD = 21600;
+
     /* L'IRM n'a que trois niveaux ; le zéro est notre convention pour « rien ». */
     const WARNING_LEVELS = array(
         0 => 'Aucun avertissement',
@@ -806,6 +815,7 @@ class meteobelgiqueirm extends eqLogic {
             'alert_threshold' => self::ALERT_THRESHOLD_DEFAULT,
             'alert_message'   => self::ALERT_MESSAGE_DEFAULT,
             'alert_on_end'      => 0,
+            'alert_on_start'    => 1,
             'alert_on_upcoming' => 0,
             /* Le bulletin naît éteint : l'activer est un choix. Les autres
              * réglages sont posés pour que le formulaire s'ouvre sur des
@@ -1978,12 +1988,20 @@ class meteobelgiqueirm extends eqLogic {
 
         $withUpcoming = ((int) $this->getConfiguration('alert_on_upcoming', 0) === 1);
 
+        /* Types annoncés à l'avance et pas encore commencés : leur début
+         * mérite un second message, « c'est maintenant ». */
+        $pending = $this->getCache('alert_pending', array());
+        if (!is_array($pending)) {
+            $pending = array();
+        }
+
         /* Une seule alerte par type : si l'IRM en publie deux du même
          * phénomène, seule la plus grave compte. */
         $active = array();
         foreach ($_model['warnings'] as $w) {
             $current = ($w['from'] <= $_now && $_now < $w['to']);
-            $upcoming = ($withUpcoming && $_now < $w['from']);
+            $upcoming = ($_now < $w['from']
+                && ($withUpcoming || $w['from'] - $_now <= self::ALERT_LEAD));
             if (!$current && !$upcoming) {
                 continue;
             }
@@ -1996,6 +2014,8 @@ class meteobelgiqueirm extends eqLogic {
 
         $trigger = false;
         $fresh = array();
+        $stillPending = array();
+        $started = array();
         foreach ($active as $slug => $w) {
             $level = (int) $w['level'];
             /*
@@ -2009,8 +2029,16 @@ class meteobelgiqueirm extends eqLogic {
                 continue;
             }
             $known = isset($memory[$slug]) ? (int) $memory[$slug] : null;
-            if ($known === null || $level > $known) {
+            $new = ($known === null || $level > $known);
+            if ($new) {
                 $trigger = true;
+            }
+            if (!empty($w['upcoming'])) {
+                if ($new || in_array($slug, $pending, true)) {
+                    $stillPending[] = $slug;
+                }
+            } elseif (in_array($slug, $pending, true)) {
+                $started[] = $slug;
             }
         }
 
@@ -2023,6 +2051,7 @@ class meteobelgiqueirm extends eqLogic {
         }
 
         $this->setCache('alerted', $fresh);
+        $this->setCache('alert_pending', $stillPending);
 
         if ($trigger) {
             /*
@@ -2032,6 +2061,24 @@ class meteobelgiqueirm extends eqLogic {
              * savoir qu'il y a aussi tout à rentrer dans le jardin.
              */
             $this->runAlertCmds($this->buildAlertMessage($_model, $active));
+            return;
+        }
+
+        /*
+         * Prévenir à l'avance permet de se protéger ; savoir que ça a commencé
+         * est une autre information. Seules les vigilances déjà annoncées
+         * à l'avance ont ce second message : les autres déclenchent à leur
+         * début, une seule fois, par le chemin ordinaire.
+         */
+        if (!empty($started) && (int) $this->getConfiguration('alert_on_start', 1) === 1) {
+            $running = array();
+            foreach ($active as $slug => $w) {
+                if (empty($w['upcoming'])) {
+                    $running[$slug] = $w;
+                }
+            }
+            $this->runAlertCmds(__('C\'est maintenant :', __FILE__) . ' '
+                . $this->buildAlertMessage($_model, $running));
             return;
         }
 
@@ -2085,6 +2132,12 @@ class meteobelgiqueirm extends eqLogic {
             ),
             $template
         );
+
+        /* Annoncée mais pas encore commencée : sans l'heure de début, « jusqu'au
+         * 24/10 à 01:00 » laisse croire que la tempête est déjà là. */
+        if (!empty($worst['upcoming']) && strpos($template, '#debut#') === false) {
+            $message .= ' ' . sprintf(__('(à partir du %s)', __FILE__), date('d/m à H:i', $worst['from']));
+        }
 
         if (count($sorted) > 1) {
             $others = array();

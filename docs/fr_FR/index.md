@@ -214,10 +214,17 @@ Le plugin mémorise donc, **par type de phénomène**, le niveau déjà annoncé
 Les horodatages sont délibérément ignorés dans cette comparaison : ce sont eux
 qui bougent, pas le danger.
 
+**Une vigilance qui commence dans les six heures** est annoncée sans attendre
+son début, et le message précise alors « à partir du … ». Attendre le début,
+c'est prévenir quand la tempête est déjà là. Son début effectif envoie ensuite
+un second message, « C'est maintenant : Vigilance orange — … » : se protéger à
+l'avance et savoir que ça a commencé sont deux informations différentes. La
+case *au début d'une vigilance annoncée à l'avance*, cochée par défaut, le
+coupe. Une vigilance déjà en cours à sa découverte ne produit qu'un message.
+
 **Deux options**, décochées par défaut : prévenir *à la fin* de la vigilance, et
-prévenir *pour les vigilances annoncées à l'avance*. L'IRM publie jusqu'à douze
-heures avant : la seconde laisse le temps de rentrer les meubles de jardin, au
-prix d'un message de plus par épisode.
+prévenir *pour toutes les vigilances annoncées, même lointaines* : le message
+part dès que l'IRM publie l'avertissement, parfois la veille.
 
 Ce mécanisme est indépendant des commandes : `warning_level` continue de
 fonctionner pour vos scénarios, et les deux peuvent coexister.

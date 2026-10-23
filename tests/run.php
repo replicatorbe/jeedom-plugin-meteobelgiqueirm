@@ -422,6 +422,54 @@ check('la fin notifie quand l\'option est active', count($sent), 2);
 check('le message de fin le dit',
     strpos($sent[0]['message'], 'Fin de vigilance') !== false, true);
 
+/*
+ * Le cas du 23/10/2026 : une orange vent annoncée pour midi, la veille. Option
+ * « à l'avance » décochée, rien ne partait avant midi — la tempête déjà là.
+ * Dans les six heures, elle est annoncée, avec son heure de début.
+ */
+$avance = new meteobelgiqueirm();
+$avance->configuration = array('ins' => '55040', 'alert_threshold' => 2, 'alert_cmds' => '101');
+$ventOrange = array('id' => 0, 'slug' => 'wind', 'name' => 'Vent', 'level' => 2,
+                    'text' => 'Tempête', 'from' => $t + 36000, 'to' => $t + 82800);
+$sent = alertCycle($avance, array($ventOrange), $t);
+check('une vigilance lointaine attend sans l\'option', count($sent), 0);
+$sent = alertCycle($avance, array($ventOrange), $t + 36000 - 21600);
+check('une vigilance dans les six heures est annoncée', count($sent), 1);
+check('le message donne l\'heure de début',
+    strpos($sent[0]['message'], 'à partir du ' . date('d/m à H:i', $t + 36000)) !== false, true);
+$sent = alertCycle($avance, array($ventOrange), $t + 36000 - 600);
+check('l\'attente du début ne renotifie pas', count($sent), 0);
+$sent = alertCycle($avance, array($ventOrange), $t + 36000);
+check('son début envoie « C\'est maintenant »', count($sent), 1);
+check('le message de début le dit clairement',
+    strpos($sent[0]['message'], 'C\'est maintenant') === 0, true);
+check('le message de début ne parle plus de « à partir du »',
+    strpos($sent[0]['message'], 'à partir du') === false, true);
+$sent = alertCycle($avance, array($ventOrange), $t + 36600);
+check('le début n\'est annoncé qu\'une fois', count($sent), 0);
+
+/* Une vigilance jamais annoncée à l'avance : un seul message, à son début. */
+$direct = new meteobelgiqueirm();
+$direct->configuration = array('ins' => '55040', 'alert_threshold' => 2, 'alert_cmds' => '101');
+$sent = alertCycle($direct, array($orage), $t);
+check('vigilance déjà en cours : un seul message', count($sent), 1);
+check('sans le préfixe « C\'est maintenant »',
+    strpos($sent[0]['message'], 'C\'est maintenant') === false, true);
+
+/* Case « au début » décochée : l'annonce seule. */
+$sansDebut = new meteobelgiqueirm();
+$sansDebut->configuration = array('ins' => '55040', 'alert_threshold' => 2, 'alert_cmds' => '101',
+                                  'alert_on_start' => 0);
+alertCycle($sansDebut, array($ventOrange), $t + 36000 - 3600);
+$sent = alertCycle($sansDebut, array($ventOrange), $t + 36000);
+check('début muet quand la case est décochée', count($sent), 0);
+
+$tot = new meteobelgiqueirm();
+$tot->configuration = array('ins' => '55040', 'alert_threshold' => 2, 'alert_cmds' => '101',
+                            'alert_on_upcoming' => 1);
+$sent = alertCycle($tot, array($ventOrange), $t);
+check('avec l\'option, elle est annoncée dès sa publication', count($sent), 1);
+
 /* Seuil à zéro : le mécanisme est désactivé, même en vigilance rouge. */
 $muet = new meteobelgiqueirm();
 $muet->configuration = array('ins' => '55040', 'alert_threshold' => 0, 'alert_cmds' => '101');

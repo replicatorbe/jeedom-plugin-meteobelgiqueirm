@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5 — 23/10/2026
+
+- Une vigilance au seuil qui commence dans les six heures est annoncée sans
+  attendre son début, même sans l'option *vigilances annoncées à l'avance* :
+  le 23/10/2026, l'orange vent de midi, publiée la veille, n'aurait sonné qu'à
+  midi. Le message précise alors l'heure de début (« à partir du … »).
+- Au début effectif d'une vigilance annoncée à l'avance, un second message
+  part : « C'est maintenant : Vigilance orange — … ». Case *au début d'une
+  vigilance annoncée à l'avance*, cochée par défaut.
+
 ## 0.4 — 18/10/2026
 
 - Une vigilance terminée s'efface : libellé, type, texte, date de fin et
